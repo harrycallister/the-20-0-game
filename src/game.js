@@ -158,9 +158,9 @@ const PLAYOFF_CUTOFF = 10 // regular-season wins needed to make the playoffs
 
 // Earn a #1-seed bye, then three rounds. Win all 17 + all 3 -> 20-0.
 const PLAYOFF_ROUNDS = [
-  { name: 'Divisional', short: 'DIV', oppBase: 84 },
-  { name: 'Conference', short: 'CONF', oppBase: 88 },
-  { name: 'Super Bowl', short: 'SB', oppBase: 92 },
+  { name: 'Divisional', short: 'DIV', oppBase: 90 },
+  { name: 'Conference', short: 'CONF', oppBase: 94 },
+  { name: 'Super Bowl', short: 'SB', oppBase: 97 },
 ]
 
 // Missed-playoff ladder (by regular-season wins), best first.
@@ -189,7 +189,7 @@ function resultTier({ made, regWins, champion, roundReached }) {
 
 // One game: higher rating wins more often. NOISE is the per-side randomness —
 // lower means results track roster strength more tightly (fewer flukes).
-const NOISE = 10
+const NOISE = 11
 function playGame(avg, oppBase, spread) {
   const opponent = oppBase + (rng() - 0.5) * spread
   const myRoll = avg + (rng() - 0.5) * NOISE
@@ -211,7 +211,7 @@ export function simulateSeason(avg) {
   const reg = []
   let regWins = 0
   for (let week = 1; week <= REG_GAMES; week += 1) {
-    const g = playGame(avg, 80, 20) // league strength ~70-90
+    const g = playGame(avg, 84, 22) // league strength ~73-95
     if (g.win) regWins += 1
     reg.push({ label: `${week}`, ...g })
   }

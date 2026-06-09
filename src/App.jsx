@@ -413,15 +413,21 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
             Where should <strong>{choosing.player.name}</strong> line up?
           </div>
           <div className="sc-opts">
-            {choosing.positions.map((pos) => (
-              <button
-                key={pos}
-                className="sc-btn"
-                onClick={() => onPick(choosing.player, firstOpenOf(pos).key)}
-              >
-                {firstOpenOf(pos).label}
-              </button>
-            ))}
+            {choosing.positions
+              .map((pos) => firstOpenOf(pos))
+              .filter(Boolean)
+              .map((s) => (
+                <button
+                  key={s.key}
+                  className="sc-btn"
+                  onClick={() => {
+                    setChoosing(null)
+                    onPick(choosing.player, s.key)
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
           </div>
           <button className="sc-cancel" onClick={() => setChoosing(null)}>
             Cancel
