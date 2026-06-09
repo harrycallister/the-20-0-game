@@ -13,7 +13,17 @@ import {
   clearSeed,
   dailySeed,
 } from './game.js'
-import { loadStats, recordResult, shareText } from './stats.js'
+import {
+  loadStats,
+  recordResult,
+  shareText,
+  getDaily,
+  saveDaily,
+  todayKey,
+  dailyStreak,
+  lastNDays,
+  shareDailySummary,
+} from './stats.js'
 
 export default function App() {
   const [players, setPlayers] = useState(null)
@@ -28,6 +38,7 @@ export default function App() {
   const [expert, setExpert] = useState(false)
   const [mode, setMode] = useState('daily') // 'daily' | 'free'
   const [stats, setStats] = useState(() => loadStats())
+  const [dailyDone, setDailyDone] = useState(() => getDaily(todayKey()))
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}players.json`)
@@ -96,6 +107,7 @@ export default function App() {
     const res = { avg, ...simulateSeason(avg) }
     setResult(res)
     setStats(recordResult(res))
+    if (mode === 'daily') setDailyDone(saveDaily(todayKey(), res, formation.name))
   }
 
   function reset() {
@@ -136,6 +148,7 @@ export default function App() {
           mode={mode}
           setMode={setMode}
           stats={stats}
+          dailyDone={dailyDone}
         />
       )}
 
@@ -474,7 +487,9 @@ function StatLine({ stats }) {
   )
 }
 
-function FormationSelect({ onChoose, mode, setMode, stats }) {
+function FormationSelect({ onChoose, mode, setMode, stats, dailyDone }) {
+  const streak = dailyStreak()
+  const week = lastNDays(7)
   return (
     <section className="formation-select">
       {stats.played > 0 && (
@@ -483,7 +498,7 @@ function FormationSelect({ onChoose, mode, setMode, stats }) {
           <span className="cstat"><b>{stats.titles}</b><em>Titles</em></span>
           <span className="cstat"><b>{stats.perfects}</b><em>20-0</em></span>
           <span className="cstat"><b>{stats.bestWins || '—'}</b><em>Best W</em></span>
-          <span className="cstat"><b>{stats.bestStreak}</b><em>Streak</em></span>
+          <span className="cstat"><b>{streak}🔥</b><em>Streak</em></span>
         </div>
       )}
 
@@ -502,45 +517,120 @@ function FormationSelect({ onChoose, mode, setMode, stats }) {
         </button>
       </div>
 
-      <h2 className="section-head">
-        <span className="kicker">
-          {mode === 'daily' ? "Today's Challenge" : 'Step 1'}
-        </span>
-        Choose Your Playbook
-      </h2>
-      <p className="draft-hint" style={{ borderTop: 'none', paddingTop: 0 }}>
-        {mode === 'daily'
-          ? 'Same teams for everyone today — build the best 20-0 run and share it'
-          : "Your playbook sets the offensive personnel you'll draft"}
-      </p>
-      <ul className="formation-list">
-        {FORMATIONS.map((f, i) => (
-          <li key={f.key} style={{ '--i': i }}>
-            <button className="formation-card" onClick={() => onChoose(f)}>
-              <span className="fc-top">
-                <span className="fc-name">{f.name}</span>
-                <span className="fc-personnel">{f.personnel}</span>
-              </span>
-              <span className="fc-blurb">{f.blurb}</span>
-              <span className="fc-split">
-                <span className="fc-pos">
-                  <b>{f.skill.RB}</b>
-                  <em>RB</em>
-                </span>
-                <span className="fc-pos">
-                  <b>{f.skill.WR}</b>
-                  <em>WR</em>
-                </span>
-                <span className="fc-pos">
-                  <b>{f.skill.TE}</b>
-                  <em>TE</em>
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {mode === 'daily' && dailyDone ? (
+        <DailyRecap
+          summary={dailyDone}
+          streak={streak}
+          week={week}
+          onFreePlay={() => setMode('free')}
+        />
+      ) : (
+        <>
+          <h2 className="section-head">
+            <span className="kicker">
+              {mode === 'daily' ? "Today's Challenge" : 'Step 1'}
+            </span>
+            Choose Your Playbook
+          </h2>
+          <p className="draft-hint" style={{ borderTop: 'none', paddingTop: 0 }}>
+            {mode === 'daily'
+              ? 'One run per day — same teams for everyone. Build the best 20-0 and share it.'
+              : "Your playbook sets the offensive personnel you'll draft"}
+          </p>
+          <ul className="formation-list">
+            {FORMATIONS.map((f, i) => (
+              <li key={f.key} style={{ '--i': i }}>
+                <button className="formation-card" onClick={() => onChoose(f)}>
+                  <span className="fc-top">
+                    <span className="fc-name">{f.name}</span>
+                    <span className="fc-personnel">{f.personnel}</span>
+                  </span>
+                  <span className="fc-blurb">{f.blurb}</span>
+                  <span className="fc-split">
+                    <span className="fc-pos">
+                      <b>{f.skill.RB}</b>
+                      <em>RB</em>
+                    </span>
+                    <span className="fc-pos">
+                      <b>{f.skill.WR}</b>
+                      <em>WR</em>
+                    </span>
+                    <span className="fc-pos">
+                      <b>{f.skill.TE}</b>
+                      <em>TE</em>
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
+  )
+}
+
+function DailyRecap({ summary, streak, week, onFreePlay }) {
+  const [copied, setCopied] = useState(false)
+  function share() {
+    const text = shareDailySummary(summary)
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        () => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1800)
+        },
+        () => {},
+      )
+    }
+  }
+  const crown = summary.perfect ? ' 🐐' : summary.champion ? ' 🏆' : ''
+  const rounds = ['Div', 'Conf', 'SB']
+  return (
+    <div className="daily-recap">
+      <span className="kicker">Today's Challenge — done</span>
+      <div className="dr-record">
+        {summary.wins}–{summary.losses}
+        <span className="dr-tier">
+          {summary.tierName}
+          {crown}
+        </span>
+      </div>
+      <div className="ticker">
+        {summary.reg.map((w, i) => (
+          <span key={i} className={`cell ${w ? 'w' : 'l'}`} style={{ '--i': i }}>
+            {w ? 'W' : 'L'}
+          </span>
+        ))}
+      </div>
+      {summary.made && (
+        <div className="bracket dr-bracket">
+          {summary.playoffs.map((w, i) => (
+            <span key={i} className={`round ${w ? 'w' : 'l'}`} style={{ '--i': i }}>
+              <em>{rounds[i]}</em>
+              <b>{w ? 'W' : 'L'}</b>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="streak-cal">
+        {week.map((d) => (
+          <span
+            key={d.date}
+            className={`day ${d.played ? (d.champion ? 'champ' : 'on') : ''}`}
+            title={d.date}
+          />
+        ))}
+      </div>
+      <div className="dr-streak">🔥 {streak}-day streak</div>
+      <button className="btn share" onClick={share}>
+        {copied ? 'Copied to clipboard ✓' : 'Share result'}
+      </button>
+      <button className="btn text" onClick={onFreePlay}>
+        Play Free Play instead
+      </button>
+      <p className="dr-note">A new challenge unlocks tomorrow.</p>
+    </div>
   )
 }
 
