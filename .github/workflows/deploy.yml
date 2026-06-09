@@ -25,6 +25,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # --- Custom domain (one-line change when ready) ---------------------
+      # Once you buy a domain:
+      #   1. Change VITE_SITE_URL in .env to https://yourdomain.com
+      #   2. Uncomment the line below with your domain (this keeps the
+      #      custom-domain setting from being wiped on each deploy)
+      #   3. In repo Settings -> Pages, set the same custom domain
+      #   4. DNS: CNAME www -> harrycallister.github.io (or A records
+      #      185.199.108-111.153 for the apex)
+      # - run: echo "yourdomain.com" > dist/CNAME
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

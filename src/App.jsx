@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FORMATIONS,
   TOTAL_REROLLS,
@@ -16,14 +16,22 @@ import {
 import {
   loadStats,
   recordResult,
-  shareText,
   getDaily,
   saveDaily,
   todayKey,
   dailyStreak,
   lastNDays,
-  shareDailySummary,
 } from './stats.js'
+import { computeScore } from './score.js'
+import {
+  SITE_URL,
+  puzzleNumber,
+  buildShareText,
+  summaryFromResult,
+  summaryFromDaily,
+  shareResultText,
+  shareNodeAsImage,
+} from './share.js'
 
 export default function App() {
   const [players, setPlayers] = useState(null)
@@ -105,9 +113,29 @@ export default function App() {
   function runSim() {
     const avg = averageRating(roster)
     const res = { avg, ...simulateSeason(avg) }
+    res.score = computeScore(res, roster)
     setResult(res)
     setStats(recordResult(res))
-    if (mode === 'daily') setDailyDone(saveDaily(todayKey(), res, formation.name))
+    if (mode === 'daily') {
+      // Compact roster snapshot so the recap (and share image) survive reload.
+      const snap = slots.map((s) => {
+        const p = roster[s.key]
+        return {
+          key: s.key,
+          label: s.label,
+          pos: s.pos,
+          ...(p && {
+            name: p.name,
+            rating: p.rating,
+            team: p.team,
+            year: p.year,
+            playerPos: p.pos,
+            tier: p.tier,
+          }),
+        }
+      })
+      setDailyDone(saveDaily(todayKey(), res, formation.name, snap))
+    }
   }
 
   function reset() {
@@ -233,7 +261,12 @@ export default function App() {
               Simulate Season
             </button>
           ) : (
-            <SimResult result={result} formationName={formation.name} />
+            <SimResult
+              result={result}
+              slots={slots}
+              roster={roster}
+              daily={mode === 'daily' ? todayKey() : null}
+            />
           )}
 
           <button className="btn text reset" onClick={reset}>
@@ -577,19 +610,27 @@ function FormationSelect({ onChoose, mode, setMode, stats, dailyDone }) {
 }
 
 function DailyRecap({ summary, streak, week, onFreePlay }) {
-  const [copied, setCopied] = useState(false)
-  function share() {
-    const text = shareDailySummary(summary)
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(
-        () => {
-          setCopied(true)
-          setTimeout(() => setCopied(false), 1800)
-        },
-        () => {},
+  // Rebuild slots + roster map from the saved snapshot (older saves predate
+  // the snapshot and just won't offer the image share).
+  const snap = Array.isArray(summary.roster) ? summary.roster : null
+  const recapSlots = snap?.map((e) => ({ key: e.key, label: e.label, pos: e.pos }))
+  const recapRoster = snap
+    ? Object.fromEntries(
+        snap
+          .filter((e) => e.name)
+          .map((e) => [
+            e.key,
+            {
+              name: e.name,
+              rating: e.rating,
+              team: e.team,
+              year: e.year,
+              pos: e.playerPos || e.pos,
+              tier: e.tier,
+            },
+          ]),
       )
-    }
-  }
+    : null
   const crown = summary.perfect ? ' 🐐' : summary.champion ? ' 🏆' : ''
   const rounds = ['Div', 'Conf', 'SB']
   return (
@@ -602,6 +643,12 @@ function DailyRecap({ summary, streak, week, onFreePlay }) {
           {crown}
         </span>
       </div>
+      {Number.isFinite(summary.score) && (
+        <div className="score-badge dr-score">
+          <b>{summary.score}</b>
+          <em>Score</em>
+        </div>
+      )}
       <div className="ticker">
         {summary.reg.map((w, i) => (
           <span key={i} className={`cell ${w ? 'w' : 'l'}`} style={{ '--i': i }}>
@@ -629,9 +676,12 @@ function DailyRecap({ summary, streak, week, onFreePlay }) {
         ))}
       </div>
       <div className="dr-streak">🔥 {streak}-day streak</div>
-      <button className="btn share" onClick={share}>
-        {copied ? 'Copied to clipboard ✓' : 'Share result'}
-      </button>
+      <ShareActions
+        summary={summaryFromDaily(summary)}
+        tierName={summary.tierName}
+        slots={recapSlots}
+        roster={recapRoster}
+      />
       <button className="btn text" onClick={onFreePlay}>
         Play Free Play instead
       </button>
@@ -659,20 +709,98 @@ function Masthead({ count }) {
   )
 }
 
-function SimResult({ result, formationName }) {
-  const [copied, setCopied] = useState(false)
-  function share() {
-    const text = shareText(result, formationName)
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(
-        () => {
-          setCopied(true)
-          setTimeout(() => setCopied(false), 1800)
-        },
-        () => {},
-      )
-    }
+// Share actions used by both the fresh-sim result and the daily recap.
+// Text share goes through the native share sheet (clipboard fallback);
+// image share renders `cardRef` to a PNG and attaches it when supported.
+function ShareActions({ summary, tierName, slots, roster }) {
+  const [note, setNote] = useState(null)
+  const cardRef = useRef(null)
+  const hasRoster = slots && roster && Object.values(roster).some(Boolean)
+
+  function flash(msg) {
+    setNote(msg)
+    setTimeout(() => setNote(null), 1800)
   }
+
+  async function onShareText() {
+    const outcome = await shareResultText(buildShareText(summary))
+    if (outcome === 'copied') flash('Copied to clipboard ✓')
+    else if (outcome === 'failed') flash('Could not share')
+  }
+
+  async function onShareImage() {
+    if (!cardRef.current) return
+    const name = `the-20-0-game-${summary.daily || 'free-play'}.png`
+    const outcome = await shareNodeAsImage(cardRef.current, name)
+    if (outcome === 'downloaded') flash('Image saved ✓')
+    else if (outcome === 'failed') flash('Could not create image')
+  }
+
+  return (
+    <>
+      <div className="share-row">
+        <button className="btn share" onClick={onShareText}>
+          {note || 'Share result'}
+        </button>
+        {hasRoster && (
+          <button className="btn ghost share-img" onClick={onShareImage}>
+            Share image
+          </button>
+        )}
+      </div>
+      {hasRoster && (
+        <div className="sharecard-stage" aria-hidden="true">
+          <ShareCard
+            ref={cardRef}
+            summary={summary}
+            tierName={tierName}
+            slots={slots}
+            roster={roster}
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
+// The PNG share artifact: record, score, tier, depth chart, URL. Rendered
+// off-screen (not display:none — html-to-image needs real layout).
+const ShareCard = forwardRef(function ShareCard(
+  { summary, tierName, slots, roster },
+  ref,
+) {
+  const crown = summary.perfect ? ' 🐐' : summary.champion ? ' 🏆' : ''
+  return (
+    <div className="sharecard" ref={ref}>
+      <div className="sc-masthead">
+        <span className="sc-title">The 20–0 Game</span>
+        <span className="sc-no">
+          {summary.daily ? `Daily #${puzzleNumber(summary.daily)}` : 'Free Play'}
+        </span>
+      </div>
+      <div className="sc-result">
+        <span className="sc-record">
+          {summary.wins}–{summary.losses}
+        </span>
+        <span className="sc-tier">
+          {tierName}
+          {crown}
+        </span>
+        {Number.isFinite(summary.score) && (
+          <span className="sc-score">
+            <b>{summary.score}</b>
+            <em>Score</em>
+          </span>
+        )}
+      </div>
+      <FieldView slots={slots} roster={roster} currentTeam={null} />
+      <div className="sc-url">{SITE_URL.replace(/^https?:\/\//, '')}</div>
+    </div>
+  )
+})
+
+function SimResult({ result, slots, roster, daily }) {
+  const summary = summaryFromResult(result, daily)
   return (
     <div className={`result ${result.tier.perfect ? 'perfect' : ''}`}>
       <div className="result-top">
@@ -686,6 +814,12 @@ function SimResult({ result, formationName }) {
           <span className="tier-name">{result.tier.name}</span>
           <span className="tier-blurb">{result.tier.blurb}</span>
         </div>
+        {Number.isFinite(result.score) && (
+          <div className="score-badge">
+            <b>{result.score}</b>
+            <em>Score</em>
+          </div>
+        )}
       </div>
 
       <div className="phase-label">
@@ -727,9 +861,12 @@ function SimResult({ result, formationName }) {
         <div className="missed">Missed the playoffs — no shot at 20–0 this year.</div>
       )}
 
-      <button className="btn share" onClick={share}>
-        {copied ? 'Copied to clipboard ✓' : 'Share result'}
-      </button>
+      <ShareActions
+        summary={summary}
+        tierName={result.tier.name}
+        slots={slots}
+        roster={roster}
+      />
     </div>
   )
 }

@@ -1241,3 +1241,121 @@ body {
     transition: none !important;
   }
 }
+
+/* ---------- Score badge + share row ---------- */
+.score-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-weak);
+  border: 1px solid var(--line);
+}
+.score-badge b {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+.score-badge em {
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dr-score {
+  margin: 0.4rem auto 0.2rem;
+}
+.share-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+}
+.share-row .btn {
+  margin-top: 0;
+}
+
+/* ---------- Off-screen share card (rendered to PNG) ---------- */
+.sharecard-stage {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 480px;
+  pointer-events: none;
+}
+.sharecard {
+  width: 480px;
+  padding: 1.1rem 1.1rem 0.8rem;
+  background: var(--bg);
+  color: var(--text);
+}
+.sc-masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.sc-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.sc-no {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sc-result {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 0.7rem;
+}
+.sc-record {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.sc-tier {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--green);
+}
+.sc-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-weak);
+}
+.sc-score b {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+.sc-score em {
+  font-style: normal;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sc-url {
+  margin-top: 0.6rem;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--faint);
+  letter-spacing: 0.02em;
+}

@@ -38,24 +38,7 @@ export function recordResult(result) {
   return s
 }
 
-// Wordle-style shareable summary.
-export function shareText(result, formationName, daily) {
-  const url =
-    typeof location !== 'undefined' ? location.origin + location.pathname : ''
-  const crown = result.tier.perfect ? ' 🐐' : result.champion ? ' 🏆' : ''
-  const reg = result.reg.map((g) => (g.win ? '🟩' : '⬜')).join('')
-  const po = result.made
-    ? '\n' + result.playoffs.map((g) => (g.win ? '🟩' : '⬜')).join('') + crown
-    : ''
-  return [
-    `The 20-0 Game 🏈${daily ? ' — Daily ' + daily : ''}`,
-    `${formationName} · ${result.wins}-${result.losses} · ${result.tier.name}`,
-    reg + po,
-    url,
-  ]
-    .filter(Boolean)
-    .join('\n')
-}
+// (Share text now lives in share.js — text-first, native share sheet.)
 
 // ---- Daily challenge: one attempt per (UTC) day + a play streak ----------
 const DAILY_KEY = 'twenty-zero-daily-v1'
@@ -77,7 +60,10 @@ export function getDaily(dateKey) {
 }
 
 // Records today's daily once; later calls are no-ops (one attempt per day).
-export function saveDaily(dateKey, result, formationName) {
+// `rosterSnap` is a compact [{ key, label, pos, name, rating, team, year,
+// tier }] snapshot so the recap can re-render the depth chart / share image
+// after a reload.
+export function saveDaily(dateKey, result, formationName, rosterSnap) {
   const all = loadDaily()
   if (all[dateKey]) return all[dateKey]
   all[dateKey] = {
@@ -91,6 +77,8 @@ export function saveDaily(dateKey, result, formationName) {
     made: result.made,
     reg: result.reg.map((g) => g.win),
     playoffs: result.playoffs.map((g) => g.win),
+    score: result.score,
+    roster: rosterSnap || null,
   }
   try {
     localStorage.setItem(DAILY_KEY, JSON.stringify(all))
@@ -127,18 +115,3 @@ export function lastNDays(n) {
   return out
 }
 
-export function shareDailySummary(s) {
-  return shareText(
-    {
-      wins: s.wins,
-      losses: s.losses,
-      tier: { name: s.tierName, perfect: s.perfect },
-      champion: s.champion,
-      made: s.made,
-      reg: s.reg.map((w) => ({ win: w })),
-      playoffs: s.playoffs.map((w) => ({ win: w })),
-    },
-    s.formationName,
-    s.date,
-  )
-}
