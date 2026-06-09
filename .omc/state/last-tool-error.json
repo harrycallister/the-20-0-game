@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__playwright__browser_click",
+  "tool_input_preview": "{\"element\":\"Marvin Harrison (WR/TE)\",\"target\":\"e77\"}",
+  "error": "### Error\nError: Ref e77 not found in the current page snapshot. Try capturing new snapshot.",
+  "timestamp": "2026-06-09T20:59:29.132Z",
+  "retry_count": 1
+}
