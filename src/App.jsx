@@ -182,6 +182,8 @@ export default function App() {
           onChoose={chooseFormation}
           mode={mode}
           setMode={setMode}
+          expert={expert}
+          setExpert={setExpert}
           stats={stats}
           dailyDone={dailyDone}
         />
@@ -192,13 +194,9 @@ export default function App() {
       <div className="formation-bar">
         <span className="fb-name">{formation.name}</span>
         <span className="fb-personnel">{formation.personnel}</span>
-        <button
-          className={`expert-toggle ${expert ? 'on' : ''}`}
-          onClick={() => setExpert((e) => !e)}
-          title="Toggle real stats vs ratings"
-        >
-          Expert
-        </button>
+        <span className={`expert-toggle ${expert ? 'on' : ''}`}>
+          {expert ? 'Expert' : 'Classic'}
+        </span>
       </div>
 
       <FieldView
@@ -520,8 +518,9 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
                 onClick={() => clickPlayer(o)}
                 disabled={o.disabled}
               >
-                <span className={`ovr ${ratingClass(o.player.rating)}`}>
-                  {o.player.rating}
+                {/* Expert drafts blind — no overall, scout the stat line */}
+                <span className={expert ? 'ovr' : `ovr ${ratingClass(o.player.rating)}`}>
+                  {expert ? '?' : o.player.rating}
                 </span>
                 <span className="pick-main">
                   <span className="pick-name">
@@ -553,7 +552,17 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
 }
 
 function PlayerMeta({ player, expert }) {
-  if (expert && player.stats) return <StatLine stats={player.stats} />
+  // Expert never shows ratings — if there's no stat line, you draft on faith.
+  if (expert) {
+    if (player.stats) return <StatLine stats={player.stats} />
+    return (
+      <span className="statline">
+        <span className="stat">
+          <em>no stat line — trust your gut</em>
+        </span>
+      </span>
+    )
+  }
   return <RatingLine player={player} />
 }
 
@@ -571,7 +580,7 @@ function StatLine({ stats }) {
   )
 }
 
-function FormationSelect({ onChoose, mode, setMode, stats, dailyDone }) {
+function FormationSelect({ onChoose, mode, setMode, expert, setExpert, stats, dailyDone }) {
   const streak = dailyStreak()
   const week = lastNDays(7)
   return (
@@ -610,6 +619,22 @@ function FormationSelect({ onChoose, mode, setMode, stats, dailyDone }) {
         />
       ) : (
         <>
+          <div className="style-picker">
+            <button
+              className={`style-card ${!expert ? 'on' : ''}`}
+              onClick={() => setExpert(false)}
+            >
+              <b>Classic</b>
+              <span>Player ratings shown</span>
+            </button>
+            <button
+              className={`style-card ${expert ? 'on' : ''}`}
+              onClick={() => setExpert(true)}
+            >
+              <b>Expert</b>
+              <span>Real stats only — scout it yourself</span>
+            </button>
+          </div>
           <h2 className="section-head">
             <span className="kicker">
               {mode === 'daily' ? "Today's Challenge" : 'Step 1'}
