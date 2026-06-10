@@ -119,7 +119,8 @@ export default function App() {
 
   function runSim() {
     const avg = averageRating(roster)
-    const res = { avg, ...simulateSeason(avg) }
+    // The Defensive Captain's role (DB/LB/DL) tilts each game's matchup.
+    const res = { avg, ...simulateSeason(avg, roster.DC?.role) }
     res.score = computeScore(res, roster)
     setResult(res)
     setStats(recordResult(res))
@@ -137,6 +138,7 @@ export default function App() {
             team: p.team,
             year: p.year,
             playerPos: p.pos,
+            dpos: p.dpos,
             tier: p.tier,
           }),
         }
@@ -246,7 +248,7 @@ export default function App() {
                     )}
                   </span>
                   <span className="bs-team col-team">
-                    {p ? `${p.team} ${p.year}` : ''}
+                    {p ? `${p.dpos ? `${p.dpos} · ` : ''}${p.team} ${p.year}` : ''}
                   </span>
                   <span className={`bs-ovr col-ovr ${p ? ratingClass(p.rating) : ''}`}>
                     {p ? p.rating : ''}
@@ -296,7 +298,7 @@ function fieldLayout(slots) {
       out[s.key] = { x: xs[i] ?? 50, y }
     })
   place(group.DEF || [], [50], 18) // your defense, deep
-  place(group.EDGE || [], [50], 42) // edge rusher, right above the O-line
+  place(group.DC || [], [50], 42) // defensive captain, right above the O-line
   place(group.WR || [], [90, 10, 73, 27], 46) // split wide
   place(group.TE || [], group.TE && group.TE.length === 2 ? [36, 64] : group.TE && group.TE.length === 3 ? [30, 64, 70] : [64], 53)
   place(group.OL || [], [50], 53) // line of scrimmage
@@ -510,6 +512,7 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
           </button>
         </div>
       ) : (
+        <>
         <ul className="board" key={team.key + pickNo}>
           {options.map((o, i) => (
             <li key={`${o.player.name}-${o.player.pos}`} style={{ '--i': i }}>
@@ -536,7 +539,8 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
                         key={p}
                         className={`pos-tag ${o.openPos.includes(p) ? 'open' : ''}`}
                       >
-                        {p}
+                        {/* Captains show their real position — that's the pick's strategy */}
+                        {p === 'DC' ? `CAPT · ${o.player.dpos || 'DEF'}` : p}
                       </span>
                     ))}
                   </span>
@@ -546,6 +550,15 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
             </li>
           ))}
         </ul>
+        {openSlots.some((s) => s.pos === 'DC') &&
+          options.some((o) => o.player.pos === 'DC' && !o.disabled) && (
+            <p className="draft-hint">
+              Your Captain's position shapes the defense: a DB erases
+              pass-heavy teams, a D-lineman stuffs the run, a LB holds up
+              against both.
+            </p>
+          )}
+        </>
       )}
     </section>
   )

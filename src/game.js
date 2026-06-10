@@ -89,7 +89,7 @@ export function buildSlots(formation) {
   addMany('WR', formation.skill.WR)
   addMany('TE', formation.skill.TE)
   slots.push({ key: 'OL', label: 'OL', pos: 'OL' })
-  slots.push({ key: 'EDGE', label: 'EDGE', pos: 'EDGE' })
+  slots.push({ key: 'DC', label: 'CAPT', pos: 'DC' })
   slots.push({ key: 'DEF', label: 'DEF', pos: 'DEF' })
   return slots
 }
@@ -127,7 +127,7 @@ export function buildTeamIndex(players) {
 
 // Positions a player can line up at. Skill players earn a secondary position
 // from their attribute ratings (a fast/route-running TE or a pass-catching RB
-// can flex to WR; a big red-zone WR can flex to TE). QB/OL/EDGE/DEF are fixed.
+// can flex to WR; a big red-zone WR can flex to TE). QB/OL/DC/DEF are fixed.
 export function eligiblePositions(p) {
   const out = [p.pos]
   const r = p.ratings || {}
@@ -157,10 +157,13 @@ const REG_GAMES = 17
 const PLAYOFF_CUTOFF = 10 // regular-season wins needed to make the playoffs
 
 // Earn a #1-seed bye, then three rounds. Win all 17 + all 3 -> 20-0.
+// Opponent bases sit ~2 pts above the pre-captain values to absorb the
+// average captain bonus, keeping overall difficulty (and daily scores)
+// comparable to before the Defensive Captain existed.
 const PLAYOFF_ROUNDS = [
-  { name: 'Divisional', short: 'DIV', oppBase: 88 },
-  { name: 'Conference', short: 'CONF', oppBase: 92 },
-  { name: 'Super Bowl', short: 'SB', oppBase: 95 },
+  { name: 'Divisional', short: 'DIV', oppBase: 90 },
+  { name: 'Conference', short: 'CONF', oppBase: 94 },
+  { name: 'Super Bowl', short: 'SB', oppBase: 97 },
 ]
 
 // Missed-playoff ladder (by regular-season wins), best first.
@@ -187,14 +190,29 @@ function resultTier({ made, regWins, champion, roundReached }) {
   return MISS_TIERS.find((t) => regWins >= t.min)
 }
 
+// Defensive Captain matchup bonus. Each opponent leans pass-heavy or
+// run-heavy; the captain's position decides which attacks he erases.
+// Expected values are tuned to be nearly equal (~2.0-2.2 pts), so the choice
+// is a playstyle bet, not a power pick: DB is boom-or-bust (huge vs pass,
+// nothing vs run), LB is steady everywhere, DL leans run-stuffing but the
+// pass rush still travels.
+const PASS_HEAVY_RATE = 0.55 // share of opponents that lean pass
+export const CAPTAIN_BONUS = {
+  DB: { pass: 4.0, run: 0.0 },
+  LB: { pass: 2.0, run: 2.0 },
+  DL: { pass: 2.0, run: 2.5 },
+}
+
 // One game: higher rating wins more often. NOISE is the per-side randomness —
 // lower means results track roster strength more tightly (fewer flukes).
 const NOISE = 11
-function playGame(avg, oppBase, spread) {
+function playGame(avg, oppBase, spread, captainRole) {
+  const style = rng() < PASS_HEAVY_RATE ? 'pass' : 'run'
+  const bonus = CAPTAIN_BONUS[captainRole]?.[style] ?? 0
   const opponent = oppBase + (rng() - 0.5) * spread
-  const myRoll = avg + (rng() - 0.5) * NOISE
+  const myRoll = avg + bonus + (rng() - 0.5) * NOISE
   const oppRoll = opponent + (rng() - 0.5) * NOISE
-  return { opponent: Math.round(opponent), win: myRoll >= oppRoll }
+  return { opponent: Math.round(opponent), win: myRoll >= oppRoll, style }
 }
 
 // Average the roster ratings. Higher average -> wins more games.
@@ -207,11 +225,11 @@ export function averageRating(roster) {
 // Run a full season: 17 regular-season games, then (if qualified) a
 // single-elimination postseason of progressively tougher rounds. Win every
 // game — 17 regular + 3 playoff — to finish 20-0.
-export function simulateSeason(avg) {
+export function simulateSeason(avg, captainRole = null) {
   const reg = []
   let regWins = 0
   for (let week = 1; week <= REG_GAMES; week += 1) {
-    const g = playGame(avg, 83, 22) // league strength ~72-94
+    const g = playGame(avg, 85, 22, captainRole) // league strength ~74-96
     if (g.win) regWins += 1
     reg.push({ label: `${week}`, ...g })
   }
@@ -224,7 +242,7 @@ export function simulateSeason(avg) {
   let roundReached = null
   if (made) {
     for (const round of PLAYOFF_ROUNDS) {
-      const g = playGame(avg, round.oppBase, 10)
+      const g = playGame(avg, round.oppBase, 10, captainRole)
       playoffs.push({ label: round.short, round: round.name, ...g })
       roundReached = round.name
       if (g.win) playoffWins += 1

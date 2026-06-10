@@ -93,9 +93,18 @@ def skill_stats(pos, r):
             "TD": si(r["receiving_tds"]),
             "YPR": round(r["receiving_yards"] / rec, 1) if rec else 0.0}
 
+# Defensive Captain roles: coarse buckets driving the in-game matchup bonus
+# (DB shuts down pass-heavy opponents, DL stuffs the run + rushes the passer,
+# LB is balanced). Maps every raw nflverse defensive position to a role.
+DPOS_ROLE = {
+    "CB": "DB", "DB": "DB", "FS": "DB", "SS": "DB", "S": "DB", "SAF": "DB",
+    "LB": "LB", "ILB": "LB", "MLB": "LB", "OLB": "LB",
+    "DE": "DL", "DT": "DL", "NT": "DL", "DL": "DL",
+}
+
 # Curated pre-1999 legends (nflverse box-score data only starts in 1999, so the
 # all-time greats are hand-rated on the same scale). Format:
-# (name, team, year, pos, overall, {attribute ratings})
+# (name, team, year, pos, overall, {attribute ratings}[, real defensive pos])
 LEGENDS = [
     # ---- QB ----
     ("Joe Montana", "SF", 1989, "QB", 99, {"ARM": 88, "ACC": 99, "AWR": 99, "DEEP": 90}),
@@ -139,15 +148,32 @@ LEGENDS = [
     ("Ozzie Newsome", "CLE", 1984, "TE", 91, {"SPD": 80, "CTH": 93, "RTE": 90, "RZN": 86}),
     ("Mike Ditka", "CHI", 1964, "TE", 90, {"SPD": 80, "CTH": 90, "RTE": 88, "RZN": 88}),
     ("John Mackey", "BAL", 1966, "TE", 90, {"SPD": 88, "CTH": 88, "RTE": 86, "RZN": 86}),
-    # ---- EDGE ----
-    ("Reggie White", "PHI", 1987, "EDGE", 99, {"PRS": 99, "RDF": 97, "BLH": 90}),
-    ("Lawrence Taylor", "NYG", 1986, "EDGE", 99, {"PRS": 99, "RDF": 94, "BLH": 92}),
-    ("Bruce Smith", "BUF", 1990, "EDGE", 97, {"PRS": 97, "RDF": 95, "BLH": 88}),
-    ("Deacon Jones", "LA", 1967, "EDGE", 96, {"PRS": 99, "RDF": 95, "BLH": 85}),
-    ("Derrick Thomas", "KC", 1990, "EDGE", 95, {"PRS": 99, "RDF": 84, "BLH": 95}),
-    ("Chris Doleman", "MIN", 1989, "EDGE", 90, {"PRS": 93, "RDF": 88, "BLH": 85}),
-    ("Kevin Greene", "PIT", 1994, "EDGE", 90, {"PRS": 94, "RDF": 82, "BLH": 86}),
-    ("Howie Long", "LA", 1985, "EDGE", 90, {"PRS": 88, "RDF": 93, "BLH": 84}),
+    # ---- DC (defensive captains — pass rushers, role DL) ----
+    ("Reggie White", "PHI", 1987, "DC", 99, {"PRS": 99, "RDF": 97, "BLH": 90}, "DE"),
+    ("Bruce Smith", "BUF", 1990, "DC", 97, {"PRS": 97, "RDF": 95, "BLH": 88}, "DE"),
+    ("Deacon Jones", "LA", 1967, "DC", 96, {"PRS": 99, "RDF": 95, "BLH": 85}, "DE"),
+    ("Chris Doleman", "MIN", 1989, "DC", 90, {"PRS": 93, "RDF": 88, "BLH": 85}, "DE"),
+    ("Howie Long", "LA", 1985, "DC", 90, {"PRS": 88, "RDF": 93, "BLH": 84}, "DE"),
+    # ---- DC (linebackers) ----
+    ("Lawrence Taylor", "NYG", 1986, "DC", 99, {"TAK": 92, "RDF": 94, "PRS": 99, "COV": 80}, "LB"),
+    ("Dick Butkus", "CHI", 1965, "DC", 98, {"TAK": 99, "RDF": 96, "PRS": 80, "COV": 84}, "LB"),
+    ("Jack Lambert", "PIT", 1976, "DC", 96, {"TAK": 97, "RDF": 92, "PRS": 80, "COV": 90}, "LB"),
+    ("Mike Singletary", "CHI", 1985, "DC", 95, {"TAK": 98, "RDF": 92, "PRS": 76, "COV": 85}, "LB"),
+    ("Derrick Thomas", "KC", 1990, "DC", 95, {"TAK": 84, "RDF": 88, "PRS": 99, "COV": 72}, "LB"),
+    ("Ray Nitschke", "GB", 1966, "DC", 94, {"TAK": 96, "RDF": 90, "PRS": 78, "COV": 84}, "LB"),
+    ("Jack Ham", "PIT", 1975, "DC", 94, {"TAK": 92, "RDF": 88, "PRS": 76, "COV": 95}, "LB"),
+    ("Kevin Greene", "PIT", 1994, "DC", 90, {"TAK": 80, "RDF": 82, "PRS": 94, "COV": 68}, "LB"),
+    ("Junior Seau", "SD", 1994, "DC", 95, {"TAK": 96, "RDF": 92, "PRS": 84, "COV": 88}, "LB"),
+    # ---- DC (defensive backs) ----
+    ("Ronnie Lott", "SF", 1986, "DC", 98, {"COV": 94, "INT": 97, "TAK": 96}, "S"),
+    ("Deion Sanders", "SF", 1994, "DC", 98, {"COV": 99, "INT": 95, "TAK": 60}, "CB"),
+    ("Rod Woodson", "PIT", 1993, "DC", 96, {"COV": 95, "INT": 93, "TAK": 88}, "CB"),
+    ("Mel Blount", "PIT", 1975, "DC", 95, {"COV": 95, "INT": 93, "TAK": 85}, "CB"),
+    ("Night Train Lane", "DET", 1962, "DC", 95, {"COV": 94, "INT": 99, "TAK": 86}, "CB"),
+    ("Darrell Green", "WAS", 1991, "DC", 93, {"COV": 96, "INT": 86, "TAK": 78}, "CB"),
+    ("Mike Haynes", "LA", 1984, "DC", 93, {"COV": 96, "INT": 88, "TAK": 74}, "CB"),
+    ("Ken Houston", "WAS", 1973, "DC", 92, {"COV": 90, "INT": 90, "TAK": 90}, "S"),
+    ("Willie Wood", "GB", 1966, "DC", 91, {"COV": 90, "INT": 92, "TAK": 86}, "S"),
     # ---- OL (units) ----
     ("WAS O-Line", "WAS", 1991, "OL", 97, {"RBK": 97, "PBK": 95}),  # The Hogs
     ("DAL O-Line", "DAL", 1992, "OL", 96, {"RBK": 96, "PBK": 96}),  # Great Wall
@@ -187,14 +213,14 @@ LEGENDS = [
     ("Todd Christensen", "LA", 1983, "TE", 90, {"SPD": 80, "CTH": 93, "RTE": 88, "RZN": 86}),
     ("Keith Jackson", "PHI", 1988, "TE", 89, {"SPD": 86, "CTH": 90, "RTE": 87, "RZN": 86}),
     ("Ben Coates", "NE", 1994, "TE", 89, {"SPD": 80, "CTH": 90, "RTE": 86, "RZN": 88}),
-    # ---- EDGE (more) ----
-    ("Mean Joe Greene", "PIT", 1972, "EDGE", 97, {"PRS": 94, "RDF": 99, "BLH": 85}),
-    ("Alan Page", "MIN", 1971, "EDGE", 95, {"PRS": 95, "RDF": 94, "BLH": 88}),
-    ("Randy White", "DAL", 1978, "EDGE", 94, {"PRS": 92, "RDF": 96, "BLH": 85}),
-    ("Richard Dent", "CHI", 1985, "EDGE", 94, {"PRS": 96, "RDF": 88, "BLH": 92}),
-    ("Jack Youngblood", "LA", 1976, "EDGE", 92, {"PRS": 92, "RDF": 92, "BLH": 84}),
-    ("Charles Haley", "SF", 1990, "EDGE", 92, {"PRS": 93, "RDF": 88, "BLH": 86}),
-    ("Cortez Kennedy", "SEA", 1992, "EDGE", 92, {"PRS": 90, "RDF": 95, "BLH": 82}),
+    # ---- DC (more pass rushers / interior linemen) ----
+    ("Mean Joe Greene", "PIT", 1972, "DC", 97, {"PRS": 94, "RDF": 99, "BLH": 85}, "DT"),
+    ("Alan Page", "MIN", 1971, "DC", 95, {"PRS": 95, "RDF": 94, "BLH": 88}, "DT"),
+    ("Randy White", "DAL", 1978, "DC", 94, {"PRS": 92, "RDF": 96, "BLH": 85}, "DT"),
+    ("Richard Dent", "CHI", 1985, "DC", 94, {"PRS": 96, "RDF": 88, "BLH": 92}, "DE"),
+    ("Jack Youngblood", "LA", 1976, "DC", 92, {"PRS": 92, "RDF": 92, "BLH": 84}, "DE"),
+    ("Charles Haley", "SF", 1990, "DC", 92, {"PRS": 93, "RDF": 88, "BLH": 86}, "DE"),
+    ("Cortez Kennedy", "SEA", 1992, "DC", 92, {"PRS": 90, "RDF": 95, "BLH": 82}, "DT"),
     # ---- OL (more units) ----
     ("DEN O-Line", "DEN", 1998, "OL", 93, {"RBK": 96, "PBK": 88}),
     ("OAK O-Line", "OAK", 1976, "OL", 92, {"RBK": 93, "PBK": 92}),
@@ -207,11 +233,18 @@ LEGENDS = [
 ]
 
 def legend_records():
-    return [
-        {"name": n, "team": t, "year": y, "pos": pos,
-         "rating": ovr, "tier": "legend", "ratings": attrs}
-        for (n, t, y, pos, ovr, attrs) in LEGENDS
-    ]
+    out = []
+    for entry in LEGENDS:
+        # DC legends carry a 7th element: the real position (CB/S/LB/DE/DT),
+        # which the game shows on the card and uses for the matchup bonus.
+        n, t, y, pos, ovr, attrs = entry[:6]
+        rec = {"name": n, "team": t, "year": y, "pos": pos,
+               "rating": ovr, "tier": "legend", "ratings": attrs}
+        if len(entry) == 7:
+            rec["dpos"] = entry[6]
+            rec["role"] = DPOS_ROLE[entry[6]]
+        out.append(rec)
+    return out
 
 def main():
     print("loading nflverse data...")
@@ -227,7 +260,9 @@ def main():
         "completions", "passing_epa", "carries", "rushing_yards", "rushing_tds",
         "rushing_epa", "receptions", "receiving_yards", "receiving_tds",
         "targets", "receiving_epa", "def_sacks", "def_tackles_for_loss",
-        "def_fumbles_forced",
+        "def_fumbles_forced", "def_qb_hits", "def_interceptions",
+        "def_pass_defended", "def_tds", "def_tackles_solo",
+        "def_tackle_assists",
     ]
     sum_cols = [c for c in SUM_COLS if c in wk.columns]
     agg = wk.groupby(["season", "team", "player_display_name"], as_index=False).agg(
@@ -305,30 +340,68 @@ def main():
         for _, r in top.iterrows():
             print(f"  {to_rating(r['_z'])}  {r['player_display_name']} ({r['recent_team']} {int(r['season'])})")
 
-    # ---- pass rusher: individual defenders, z across all DL/LB in season ----
-    dl = ps[ps["position_group"].isin(["DL","LB"])].copy()
-    dl = dl[dl["def_sacks"] >= 3]
-    out=[]
-    for season,g in dl.groupby("season"):
-        g=g.copy()
-        g["z_sack"]=zscore(g["def_sacks"].to_numpy())
-        g["z_tfl"]=zscore(g["def_tackles_for_loss"].fillna(0).to_numpy())
-        g["z_ff"]=zscore(g["def_fumbles_forced"].fillna(0).to_numpy())
-        g["_comp"]=0.60*g["z_sack"]+0.25*g["z_tfl"]+0.15*g["z_ff"]
-        out.append(g)
-    allg=__import__("pandas").concat(out)
-    allg["_z"]=zscore(allg["_comp"].to_numpy())
-    allg=allg.reset_index(drop=True)
-    eattrs=make_attrs(allg,[("PRS","z_sack"),("RDF","z_tfl"),("BLH","z_ff")])
-    for i,r in allg.iterrows():
-        records.append({"name":r["player_display_name"],"team":r["recent_team"],
-            "year":int(r["season"]),"pos":"EDGE","rating":to_rating(r["_z"]),"tier":"modern",
-            "ratings":{"PRS":eattrs["PRS"][i],"RDF":eattrs["RDF"][i],"BLH":eattrs["BLH"][i]},
-            "stats":{"Sacks":sf(r["def_sacks"]),"TFL":si(r["def_tackles_for_loss"]),
-                     "FF":si(r["def_fumbles_forced"])}})
-    print("\nTOP EDGE:")
-    for _,r in allg.sort_values("_z",ascending=False).head(5).iterrows():
-        print(f"  {to_rating(r['_z'])}  {r['player_display_name']} ({r['recent_team']} {int(r['season'])})")
+    # ---- Defensive Captains: every defender, rated within his own position
+    # bucket (DL / LB / DB) within season, then re-standardized across seasons.
+    # All three buckets emit pos "DC" — the draft slot draws the best defender
+    # on a team regardless of position. `dpos` keeps the real position for the
+    # card; `role` drives the sim's matchup bonus.
+    pd_ = __import__("pandas")
+    dc_specs = {
+        "DL": dict(groups=["DL"], filt=lambda d: d["def_sacks"] >= 3, inputs={
+            "sack": lambda d: d["def_sacks"],
+            "tfl":  lambda d: d["def_tackles_for_loss"].fillna(0),
+            "qbh":  lambda d: d["def_qb_hits"].fillna(0),
+            "ff":   lambda d: d["def_fumbles_forced"].fillna(0),
+        }, weights={"sack":0.50,"tfl":0.25,"qbh":0.15,"ff":0.10},
+           attrs=[("PRS","z_sack"),("RDF","z_tfl"),("BLH","z_ff")],
+           stats=lambda r: {"Sacks":sf(r["def_sacks"]),"TFL":si(r["def_tackles_for_loss"]),
+                            "QBH":si(r["def_qb_hits"]),"FF":si(r["def_fumbles_forced"])}),
+        "LB": dict(groups=["LB"], filt=lambda d: d["_tk"] >= 60, inputs={
+            "tak":  lambda d: d["_tk"],
+            "tfl":  lambda d: d["def_tackles_for_loss"].fillna(0),
+            "sack": lambda d: d["def_sacks"].fillna(0),
+            "cov":  lambda d: d["def_interceptions"].fillna(0)*3 + d["def_pass_defended"].fillna(0),
+        }, weights={"tak":0.35,"tfl":0.25,"sack":0.20,"cov":0.20},
+           attrs=[("TAK","z_tak"),("RDF","z_tfl"),("PRS","z_sack"),("COV","z_cov")],
+           stats=lambda r: {"Tk":si(r["_tk"]),"TFL":si(r["def_tackles_for_loss"]),
+                            "Sacks":sf(r["def_sacks"]),"INT":si(r["def_interceptions"])}),
+        "DB": dict(groups=["DB"], filt=lambda d: (d["def_interceptions"].fillna(0)*3
+                   + d["def_pass_defended"].fillna(0)) >= 10, inputs={
+            "int":  lambda d: d["def_interceptions"].fillna(0),
+            "pd":   lambda d: d["def_pass_defended"].fillna(0),
+            "tak":  lambda d: d["_tk"],
+            "td":   lambda d: d["def_tds"].fillna(0),
+        }, weights={"int":0.40,"pd":0.35,"tak":0.15,"td":0.10},
+           attrs=[("COV","z_pd"),("INT","z_int"),("TAK","z_tak")],
+           stats=lambda r: {"INT":si(r["def_interceptions"]),"PD":si(r["def_pass_defended"]),
+                            "Tk":si(r["_tk"]),"TD":si(r["def_tds"])}),
+    }
+    for role, spec in dc_specs.items():
+        sub = ps[ps["position_group"].isin(spec["groups"])].copy()
+        sub["_tk"] = sub.get("def_tackles_solo", 0)
+        if "def_tackle_assists" in sub.columns:
+            sub["_tk"] = sub["_tk"].fillna(0) + sub["def_tackle_assists"].fillna(0)
+        sub = sub[spec["filt"](sub)]
+        out = []
+        for season, g in sub.groupby("season"):
+            g = g.copy()
+            for nm, fn in spec["inputs"].items():
+                g[f"z_{nm}"] = zscore(fn(g).to_numpy())
+            g["_comp"] = sum(g[f"z_{nm}"] * w for nm, w in spec["weights"].items())
+            out.append(g)
+        allg = pd_.concat(out)
+        allg["_z"] = zscore(allg["_comp"].to_numpy())
+        allg = allg.reset_index(drop=True)
+        rattrs = make_attrs(allg, spec["attrs"])
+        for i, r in allg.iterrows():
+            records.append({"name":r["player_display_name"],"team":r["recent_team"],
+                "year":int(r["season"]),"pos":"DC","rating":to_rating(r["_z"]),"tier":"modern",
+                "dpos":r["position"],"role":role,
+                "ratings":{label: rattrs[label][i] for label,_ in spec["attrs"]},
+                "stats":spec["stats"](r)})
+        print(f"\nTOP DC ({role}):")
+        for _, r in allg.sort_values("_z",ascending=False).head(5).iterrows():
+            print(f"  {to_rating(r['_z'])}  {r['player_display_name']} ({r['recent_team']} {int(r['season'])}, {r['position']})")
 
     # ---- defense UNIT: z across the 32 teams within each season ----
     pa = []  # points allowed per team-season from schedules
