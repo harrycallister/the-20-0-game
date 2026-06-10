@@ -262,6 +262,8 @@ export default function App() {
             </div>
           </div>
 
+          {roster.DC && <CaptainNote captain={roster.DC} />}
+
           {!result ? (
             <button className="btn solid sim" onClick={runSim}>
               <PlayIcon />
@@ -553,14 +555,36 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
         {openSlots.some((s) => s.pos === 'DC') &&
           options.some((o) => o.player.pos === 'DC' && !o.disabled) && (
             <p className="draft-hint">
-              Your Captain's position shapes the defense: a DB erases
-              pass-heavy teams, a D-lineman stuffs the run, a LB holds up
-              against both.
+              Your Captain's position changes how your defense plays — and
+              your final score. A DB erases pass-heavy teams, a D-lineman
+              stuffs the run, a LB holds up against both.
             </p>
           )}
         </>
       )}
     </section>
+  )
+}
+
+// How the chosen captain's position shapes the season sim — shown on the
+// final-roster screen so the player connects the pick to the result.
+const CAPTAIN_NOTES = {
+  DB: 'shuts down pass-heavy opponents — dominant through the air, but run-first teams go right at the rest of your defense',
+  LB: 'anchors the defense against everything — a steady edge vs both pass- and run-heavy opponents',
+  DL: 'stuffs the run and lives in the backfield — strongest vs ground games, and the pass rush travels too',
+}
+
+function CaptainNote({ captain }) {
+  const note = CAPTAIN_NOTES[captain.role]
+  if (!note) return null
+  return (
+    <p className="captain-note">
+      <b>
+        Captain: {captain.name} ({captain.dpos || captain.role})
+      </b>{' '}
+      — {note}. Each week's matchup shifts your odds, so your captain's
+      position changes your record and your score.
+    </p>
   )
 }
 

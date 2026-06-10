@@ -604,6 +604,43 @@ body {
   margin: 0 0 0.75rem;
 }
 
+/* captain effect callout on the final-roster screen */
+.captain-note {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  padding: 0.6rem 0.8rem;
+  margin: 0.75rem 0 0;
+}
+.captain-note b {
+  color: var(--ink);
+}
+
+/* static crawlable footer (lives in index.html, outside the app root) */
+.seo-footer {
+  max-width: 560px;
+  margin: 2.5rem auto 2rem;
+  padding: 1.25rem 1rem 0;
+  border-top: 2px solid var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.seo-footer h2 {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+.seo-footer p {
+  margin: 0 0 0.75rem;
+}
+
 /* team on the clock banner — locker-room chalkboard */
 .team-banner {
   display: flex;

@@ -13,9 +13,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Draft an all-time NFL roster team-by-team and chase the perfect 20-0 season. A new daily challenge every day."
+      content="The 20-0 Game is a free daily NFL draft game. Draft an all-time roster from 14,000+ real players (1999-2024 plus legends), simulate the season, and chase a perfect 20-0. New puzzle every day — compare scores with friends."
     />
     <meta name="theme-color" content="#f0e9d6" />
+    <link rel="canonical" href="%VITE_SITE_URL%/" />
+    <!-- Structured data so search engines list it as a free web game -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "The 20-0 Game",
+        "url": "%VITE_SITE_URL%/",
+        "image": "%VITE_SITE_URL%/og-image.png",
+        "description": "A free daily NFL roster-draft game. Draft an all-time team from 14,000+ real player seasons, pick a defensive captain, simulate the season, and chase the perfect 20-0.",
+        "genre": ["Sports", "Puzzle", "Fantasy Football"],
+        "gamePlatform": "Web browser",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "operatingSystem": "Any",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- crossorigin so html-to-image can read the rules and embed the font
@@ -54,10 +76,32 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232d8451'/%3E%3Ctext x='50' y='70' font-size='48' font-family='system-ui,sans-serif' font-weight='800' fill='white' text-anchor='middle'%3E20%3C/text%3E%3C/svg%3E"
     />
-    <title>The 20-0 Game — NFL Draft Challenge</title>
+    <title>The 20-0 Game — Free Daily NFL Roster Draft Game</title>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Static, crawlable description — the app itself renders into #root,
+         which search engines that skip JS would otherwise see as empty. -->
+    <footer class="seo-footer">
+      <h2>What is The 20-0 Game?</h2>
+      <p>
+        The 20-0 Game is a free daily NFL draft game you play in your
+        browser. Each pick puts a random NFL team on the clock — draft their
+        best quarterback, running back, receivers, offensive line, and a
+        defensive captain from over 14,000 real player seasons (1999–2024,
+        plus hand-rated legends like Jerry Rice, Barry Sanders, Lawrence
+        Taylor, and Deion Sanders). Your defensive captain's position changes
+        how your defense plays: a cornerback shuts down passing attacks, a
+        defensive lineman stuffs the run, a linebacker defends both.
+      </p>
+      <p>
+        When your roster is set, simulate a full 17-game season and the
+        playoffs. Win every game to finish 20-0 — perfect and immortal. A new
+        daily challenge drops every day with the same teams for everyone, so
+        you can share your score and compete with friends on the daily
+        leaderboard.
+      </p>
+    </footer>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
