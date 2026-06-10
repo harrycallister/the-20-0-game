@@ -2,7 +2,7 @@
 // iMessage / WhatsApp), with clipboard + download fallbacks, plus a
 // render-the-recap-to-PNG path for image shares.
 
-import { toBlob } from 'html-to-image'
+import { toBlob, getFontEmbedCSS } from 'html-to-image'
 
 // Single source of truth for the site's absolute URL. Set in `.env`
 // (VITE_SITE_URL) — change it there once when moving to a custom domain.
@@ -92,10 +92,20 @@ export async function shareResultText(text) {
 
 // Render a DOM node to a PNG and share it as a file (attaches directly in
 // iMessage when supported); otherwise download it.
+// The webfont-embedding CSS is expensive to compute (network fetches), so we
+// do it once per session and reuse it for every share.
+let _fontEmbedCss = null
 export async function shareNodeAsImage(node, filename) {
   let blob
   try {
-    blob = await toBlob(node, { pixelRatio: 2, backgroundColor: '#f3f4f6' })
+    if (_fontEmbedCss === null) {
+      _fontEmbedCss = await getFontEmbedCSS(node).catch(() => '')
+    }
+    blob = await toBlob(node, {
+      pixelRatio: 2,
+      backgroundColor: '#f0e9d6',
+      fontEmbedCSS: _fontEmbedCss,
+    })
   } catch {
     return 'failed'
   }
