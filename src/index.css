@@ -632,6 +632,41 @@ body {
   margin: 0 0 0.75rem;
 }
 
+/* captain selection — the dedicated final stage */
+.role-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0 0 0.9rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.role-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.role-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 0.12rem 0.4rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  color: var(--ink);
+}
+/* role-* names avoid colliding with .lb (leaderboard) etc. */
+.role-badge.role-db {
+  background: var(--gold-weak);
+}
+.role-badge.role-lb {
+  background: #ddebe2;
+}
+.role-badge.role-dl {
+  background: #f3ded8;
+}
+
 /* captain effect callout on the final-roster screen */
 .captain-note {
   font-size: 0.85rem;

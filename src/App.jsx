@@ -6,6 +6,7 @@ import {
   cleanPlayers,
   buildTeamIndex,
   drawTeam,
+  drawCaptainCandidates,
   eligiblePositions,
   averageRating,
   simulateSeason,
@@ -50,6 +51,7 @@ export default function App() {
   const [usedKeys, setUsedKeys] = useState(() => new Set())
   const [rerollsLeft, setRerollsLeft] = useState(TOTAL_REROLLS)
   const [result, setResult] = useState(null)
+  const [captains, setCaptains] = useState(null) // final-stage candidates
   const [expert, setExpert] = useState(false)
   const [mode, setMode] = useState('daily') // 'daily' | 'free'
   const [stats, setStats] = useState(() => loadStats())
@@ -76,23 +78,32 @@ export default function App() {
     () => (formation ? buildSlots(formation) : null),
     [formation],
   )
+  // The Defensive Captain is a dedicated final stage, not part of the
+  // team-on-the-clock draft — regular picks only cover the other slots.
+  const draftSlots = useMemo(
+    () => (slots ? slots.filter((s) => s.pos !== 'DC') : null),
+    [slots],
+  )
 
   const filled = Object.keys(roster).length
   const done = slots ? filled >= slots.length : false
 
   function openPositions(rosterState) {
-    return new Set(slots.filter((s) => !rosterState[s.key]).map((s) => s.pos))
+    return new Set(
+      draftSlots.filter((s) => !rosterState[s.key]).map((s) => s.pos),
+    )
   }
 
   function chooseFormation(f) {
     if (mode === 'daily') setSeed(dailySeed(new Date().toISOString().slice(0, 10)))
     else clearSeed()
-    const newSlots = buildSlots(f)
+    const newSlots = buildSlots(f).filter((s) => s.pos !== 'DC')
     setFormation(f)
     setRoster({})
     setUsedKeys(new Set())
     setRerollsLeft(TOTAL_REROLLS)
     setResult(null)
+    setCaptains(null)
     setCurrentTeam(
       drawTeam(teamIndex, new Set(newSlots.map((s) => s.pos)), new Set()),
     )
@@ -103,11 +114,19 @@ export default function App() {
     const nextUsed = new Set(usedKeys).add(currentTeam.key)
     setRoster(nextRoster)
     setUsedKeys(nextUsed)
-    if (Object.keys(nextRoster).length >= slots.length) {
+    if (Object.keys(nextRoster).length >= draftSlots.length) {
+      // Lineup set — move to the final stage: choosing the Defensive Captain.
       setCurrentTeam(null)
+      setCaptains(drawCaptainCandidates(teamIndex, nextUsed))
     } else {
       setCurrentTeam(drawTeam(teamIndex, openPositions(nextRoster), nextUsed))
     }
+  }
+
+  function pickCaptain(candidate) {
+    setRoster({ ...roster, DC: candidate.player })
+    setUsedKeys(new Set(usedKeys).add(candidate.team.key))
+    setCaptains(null)
   }
 
   function reroll() {
@@ -154,6 +173,7 @@ export default function App() {
     setUsedKeys(new Set())
     setRerollsLeft(TOTAL_REROLLS)
     setResult(null)
+    setCaptains(null)
   }
 
   if (error)
@@ -211,7 +231,7 @@ export default function App() {
         <DraftRound
           team={currentTeam}
           reel={teamIndex}
-          slots={slots}
+          slots={draftSlots}
           roster={roster}
           pickNo={filled + 1}
           total={slots.length}
@@ -219,6 +239,14 @@ export default function App() {
           expert={expert}
           onPick={pickPlayer}
           onReroll={reroll}
+        />
+      )}
+
+      {!done && !currentTeam && captains && (
+        <CaptainSelect
+          candidates={captains}
+          expert={expert}
+          onPick={pickCaptain}
         />
       )}
 
@@ -514,7 +542,6 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
           </button>
         </div>
       ) : (
-        <>
         <ul className="board" key={team.key + pickNo}>
           {options.map((o, i) => (
             <li key={`${o.player.name}-${o.player.pos}`} style={{ '--i': i }}>
@@ -552,16 +579,70 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
             </li>
           ))}
         </ul>
-        {openSlots.some((s) => s.pos === 'DC') &&
-          options.some((o) => o.player.pos === 'DC' && !o.disabled) && (
-            <p className="draft-hint">
-              Your Captain's position changes how your defense plays — and
-              your final score. A DB erases pass-heavy teams, a D-lineman
-              stuffs the run, a LB holds up against both.
-            </p>
-          )}
-        </>
       )}
+    </section>
+  )
+}
+
+// The dedicated final stage: lineup is set, now pick the Defensive Captain.
+// Candidates come from unused team-seasons with one of each role guaranteed
+// when possible, so the strategy choice is always on the table.
+function CaptainSelect({ candidates, expert, onPick }) {
+  return (
+    <section className="draft captain-select">
+      <h2 className="section-head">
+        <span className="kicker">Final Pick</span>
+        Choose Your Defensive Captain
+      </h2>
+      <p className="draft-hint">
+        Your lineup is set — this last pick works differently. Your Captain's
+        position changes how your whole defense plays, and that changes your
+        record and your score. Every opponent leans pass-heavy or run-heavy;
+        your Captain decides which of those you shut down.
+      </p>
+      <div className="role-legend">
+        <span className="role-line">
+          <b className="role-badge role-db">DB</b> erases pass-heavy teams —
+          boom or bust
+        </span>
+        <span className="role-line">
+          <b className="role-badge role-lb">LB</b> steady against both run and
+          pass
+        </span>
+        <span className="role-line">
+          <b className="role-badge role-dl">DL</b> stuffs the run, and the
+          pass rush travels too
+        </span>
+      </div>
+      <ul className="board">
+        {candidates.map((c, i) => (
+          <li key={c.team.key} style={{ '--i': i }}>
+            <button className="pick" onClick={() => onPick(c)}>
+              <span className={expert ? 'ovr' : `ovr ${ratingClass(c.player.rating)}`}>
+                {expert ? '?' : c.player.rating}
+              </span>
+              <span className="pick-main">
+                <span className="pick-name">
+                  {c.player.name}
+                  {c.player.tier === 'legend' && (
+                    <span className="legend-badge">Legend</span>
+                  )}
+                </span>
+                <span className="pos-tags">
+                  <span className={`role-badge role-${(c.player.role || '').toLowerCase()}`}>
+                    {c.player.role}
+                  </span>
+                  <span className="pos-tag open">{c.player.dpos || 'DEF'}</span>
+                  <span className="pos-tag">
+                    {c.team.team} {c.team.year}
+                  </span>
+                </span>
+                <PlayerMeta player={c.player} expert={expert} />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

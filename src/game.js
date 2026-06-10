@@ -151,6 +151,26 @@ export function drawTeam(teamIndex, openPositions, usedKeys = new Set()) {
   return pool[Math.floor(rng() * pool.length)]
 }
 
+// Draw the candidates for the final Defensive Captain pick: the best defender
+// from n unused team-seasons, guaranteeing one of each role (DB / LB / DL)
+// when possible so the pick is always a real strategy decision.
+export function drawCaptainCandidates(teamIndex, usedKeys = new Set(), n = 4) {
+  let pool = teamIndex.filter((ts) => !usedKeys.has(ts.key) && ts.byPos.DC)
+  if (pool.length === 0) pool = teamIndex.filter((ts) => ts.byPos.DC)
+  const byRole = {}
+  for (const ts of pool) (byRole[ts.byPos.DC.role] ||= []).push(ts)
+  const picks = []
+  for (const role of ['DB', 'LB', 'DL']) {
+    const arr = byRole[role]
+    if (arr && arr.length > 0) picks.push(arr.splice(Math.floor(rng() * arr.length), 1)[0])
+  }
+  const rest = pool.filter((ts) => !picks.includes(ts))
+  while (picks.length < n && rest.length > 0) {
+    picks.push(rest.splice(Math.floor(rng() * rest.length), 1)[0])
+  }
+  return picks.map((ts) => ({ team: ts, player: ts.byPos.DC }))
+}
+
 // ---- Simulation -------------------------------------------------------------
 
 const REG_GAMES = 17
