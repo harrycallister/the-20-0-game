@@ -1,0 +1,11 @@
+// Cloudflare Workers config — static-asset deploy of the built site.
+// With this file present, `npx wrangler deploy` just uploads dist/ and
+// skips the Vite auto-configuration (which requires Vite 6+).
+{
+  "name": "the-20-0-game",
+  "compatibility_date": "2026-06-10",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
