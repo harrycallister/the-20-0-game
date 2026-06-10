@@ -11,8 +11,7 @@ export default {
     title: 'The 15-0 Game',
     perfectName: '15-0',
     seasonsLabel: '1924–2025',
-    // TODO: set to the real launch date before going live (puzzle #1, UTC).
-    dailyEpoch: '2026-07-01',
+    dailyEpoch: '2026-06-10', // launch day = daily puzzle #1 (UTC)
     defaultSiteUrl: 'https://go15-0.com',
     shareFilePrefix: 'the-15-0-game',
     storagePrefix: 'fifteen-zero',
