@@ -1,8 +1,15 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- TODO: add a GA4 tag for the CFB site once its own property exists
-         (don't reuse the NFL site's property — it would mix the data). -->
+    <!-- Google tag (gtag.js) — GA4 property "Go15-0", separate from the
+         NFL site's property so the data never mixes. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GXW0CFDXBQ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GXW0CFDXBQ');
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
