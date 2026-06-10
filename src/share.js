@@ -73,6 +73,9 @@ export function summaryFromDaily(d) {
 
 // Native share sheet first; clipboard fallback. Returns how it ended so the
 // button can confirm ("Copied!" vs the sheet handling its own feedback).
+// NB: navigator.share and navigator.clipboard only exist in secure contexts
+// (https) — on a plain-http page (e.g. while a new domain's TLS cert is
+// pending) we fall back to the legacy execCommand copy, which still works.
 export async function shareResultText(text) {
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
@@ -88,6 +91,20 @@ export async function shareResultText(text) {
   try {
     await navigator.clipboard.writeText(text)
     return 'copied'
+  } catch {
+    /* fall through to the legacy path */
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.setAttribute('readonly', '')
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    ta.remove()
+    return ok ? 'copied' : 'failed'
   } catch {
     return 'failed'
   }
