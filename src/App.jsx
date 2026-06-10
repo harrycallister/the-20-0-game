@@ -177,7 +177,7 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Masthead count={players.length} />
+      <Masthead count={players.length} onHome={reset} />
 
       {!formation && (
         <FormationSelect
@@ -828,12 +828,14 @@ function DailyRecap({ summary, streak, week, onFreePlay }) {
   )
 }
 
-function Masthead({ count }) {
+function Masthead({ count, onHome }) {
   return (
     <header className="masthead">
       <div className="masthead-rule top" />
       <h1>
-        The 20<span className="dash">–</span>0 Game
+        <button className="masthead-home" onClick={onHome} title="Back to home">
+          The 20<span className="dash">–</span>0 Game
+        </button>
       </h1>
       <div className="dateline">
         <span>Seasons 1999–2024</span>

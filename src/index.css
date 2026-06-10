@@ -96,6 +96,19 @@ body {
 .masthead h1 .dash {
   color: var(--red);
 }
+/* the title is a home button — inherit the h1 look exactly */
+.masthead-home {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.masthead-home:hover {
+  color: var(--accent);
+}
 .dateline {
   display: flex;
   align-items: center;
