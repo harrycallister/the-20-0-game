@@ -279,6 +279,9 @@ export default function App() {
                     {p?.tier === 'legend' && (
                       <span className="legend-badge">Legend</span>
                     )}
+                    {p?.heisman && (
+                      <span className="legend-badge heisman-badge">Heisman</span>
+                    )}
                   </span>
                   <span className="bs-team col-team">
                     {p ? `${p.dpos ? `${p.dpos} · ` : ''}${p.team} ${p.year}` : ''}
@@ -571,6 +574,9 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
                     {o.player.tier === 'legend' && (
                       <span className="legend-badge">Legend</span>
                     )}
+                    {o.player.heisman && (
+                      <span className="legend-badge heisman-badge">Heisman</span>
+                    )}
                     {o.disabled && <span className="taken-badge">Filled</span>}
                   </span>
                   <span className="pos-tags">
@@ -637,6 +643,9 @@ function CaptainSelect({ candidates, expert, onPick }) {
                   {c.player.name}
                   {c.player.tier === 'legend' && (
                     <span className="legend-badge">Legend</span>
+                  )}
+                  {c.player.heisman && (
+                    <span className="legend-badge heisman-badge">Heisman</span>
                   )}
                 </span>
                 <span className="pos-tags">
@@ -1134,6 +1143,26 @@ function SimResult({ result, slots, roster, daily }) {
           </div>
         )}
       </div>
+
+      {(() => {
+        const heismen = Object.values(roster)
+          .filter((p) => p && p.heisman)
+          .map((p) => p.name)
+        if (!result.confChampion && heismen.length === 0) return null
+        return (
+          <div className="honors">
+            {result.confChampion && (
+              <span className="honor">🏆 Conference Champion</span>
+            )}
+            {result.confChampion === false && (
+              <span className="honor lost">Lost the Conference Championship</span>
+            )}
+            {heismen.length > 0 && (
+              <span className="honor">🏅 Heisman on roster: {heismen.join(', ')}</span>
+            )}
+          </div>
+        )
+      })()}
 
       <div className="phase-label">
         Regular Season<i>{result.regWins}–{result.regLosses}</i>

@@ -201,10 +201,17 @@ export function averageRating(roster) {
 export function simulateSeason(avg, captainRole = null) {
   const reg = []
   let regWins = 0
+  // Optional sport feature (CFB): the last regular-season game is the
+  // Conference Championship — tougher opponent, its own label, and winning
+  // it is reported as `confChampion` on the result.
+  const ccg = SEASON.ccg || null
   for (let week = 1; week <= REG_GAMES; week += 1) {
-    const g = playGame(avg, SEASON.leagueBase, SEASON.leagueSpread, captainRole)
+    const isCcg = ccg && week === REG_GAMES
+    const g = isCcg
+      ? playGame(avg, ccg.oppBase, ccg.spread, captainRole)
+      : playGame(avg, SEASON.leagueBase, SEASON.leagueSpread, captainRole)
     if (g.win) regWins += 1
-    reg.push({ label: `${week}`, ...g })
+    reg.push(isCcg ? { label: ccg.label, ccg: true, ...g } : { label: `${week}`, ...g })
   }
   const regLosses = REG_GAMES - regWins
   const made = regWins >= PLAYOFF_CUTOFF
@@ -239,6 +246,8 @@ export function simulateSeason(avg, captainRole = null) {
     playoffWins,
     made,
     champion,
+    // Won the Conference Championship game (null when the sport has none).
+    confChampion: ccg ? reg[reg.length - 1].win : null,
     roundReached,
     reg,
     playoffs,

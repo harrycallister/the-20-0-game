@@ -1,20 +1,21 @@
-// College Football sport config — "The 15-0 Game".
-// A perfect season under the 12-team CFP is 15-0 for a top-4 seed:
-// 12 regular-season games + first-round bye + Quarterfinal + Semifinal +
-// National Championship. (Indiana went 15-0 to win it all in 2025-26.)
-// Same shape as nfl.js; the engine reads everything from here.
+// College Football sport config — "The 16-0 Game".
+// A perfect season under the 12-team CFP is 16-0 for a top-4 seed:
+// 12 regular-season games + the conference championship + first-round bye +
+// Quarterfinal + Semifinal + National Championship. (Indiana went 16-0 to
+// win it all in 2025-26.) Same shape as nfl.js; the engine reads everything
+// from here.
 
 export default {
   key: 'cfb',
 
   meta: {
-    title: 'The 15-0 Game',
-    perfectName: '15-0',
+    title: 'The 16-0 Game',
+    perfectName: '16-0',
     seasonsLabel: '1924–2025',
     dailyEpoch: '2026-06-10', // launch day = daily puzzle #1 (UTC)
-    defaultSiteUrl: 'https://go15-0.com',
-    shareFilePrefix: 'the-15-0-game',
-    storagePrefix: 'fifteen-zero',
+    defaultSiteUrl: 'https://go16-0game.com',
+    shareFilePrefix: 'the-16-0-game',
+    storagePrefix: 'sixteen-zero',
     leaderboardTable: 'daily_runs_cfb',
     playersUrl: 'players_cfb.json',
   },
@@ -67,9 +68,12 @@ export default {
   ],
 
   season: {
-    regGames: 12,
+    regGames: 13, // 12 regular-season games + the conference championship
+    // Game 13 is the Conference Championship: tougher than a normal week,
+    // and winning it is surfaced as its own "Conference Champion" badge.
+    ccg: { label: 'CCG', name: 'Conference Championship', oppBase: 88, spread: 14 },
     playoffCutoff: 10, // 10+ wins earns the top-4 seed and the bye
-    // First-round bye, then three rounds. Win all 12 + all 3 -> 15-0.
+    // First-round bye, then three rounds. Win all 13 + all 3 -> 16-0.
     playoffRounds: [
       { name: 'Quarterfinal', short: 'QF', oppBase: 90 },
       { name: 'Semifinal', short: 'SF', oppBase: 94 },
@@ -86,7 +90,7 @@ export default {
       DL: { pass: 2.0, run: 2.5 },
     },
     tiers: {
-      perfect: { name: '15-0', blurb: 'Perfect. Immortal.' },
+      perfect: { name: '16-0', blurb: 'Perfect. Immortal.' },
       champion: { name: 'National Champion', blurb: 'Won the natty.' },
       runnerUp: { name: 'National Runner-Up', blurb: 'One win from glory.' },
       semifinalExit: { name: 'CFP Semifinalist', blurb: 'Fell a game short of the title game.' },
@@ -101,10 +105,10 @@ export default {
     ],
   },
 
-  // Max possible: 12*4 + 3*10 + 8 + 6 + 5 + 3 = 100 exactly.
+  // Max possible: 13*3 + 3*13 + 8 + 6 + 5 + 3 = 100 exactly.
   score: {
-    REG_WIN: 4,
-    PLAYOFF_WIN: 10,
+    REG_WIN: 3,
+    PLAYOFF_WIN: 13,
     CHAMPION: 8,
     PERFECT: 6,
     UNDERDOG_PIVOT: 90,

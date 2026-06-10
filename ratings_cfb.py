@@ -40,6 +40,7 @@ import numpy as np
 import pandas as pd
 
 from cfb_legends import LEGENDS, legend_records
+from cfb_heisman import HEISMAN
 
 START, END = 2001, 2025  # 2025 = the completed 2025-26 season (Indiana 15-0).
 # Years before ~2004 come back hollow from the API and are skipped at runtime;
@@ -398,6 +399,19 @@ def main():
     legends = legend_records()
     records.extend(legends)
     print(f"\nadded {len(legends)} pre-2001 legends")
+
+    # Heisman flags: mark any record (modern or legend) matching a winner's
+    # (name, season). Warn about data-era winners that didn't match so name
+    # drift (e.g. suffixes) is caught instead of silently dropped.
+    marked = set()
+    for r in records:
+        if (r["name"], r["year"]) in HEISMAN:
+            r["heisman"] = True
+            marked.add((r["name"], r["year"]))
+    print(f"\nmarked {len(marked)} Heisman seasons")
+    for name, yr in sorted(HEISMAN - marked):
+        if 2006 <= yr <= END:
+            print(f"  WARNING: Heisman winner not found in data: {name} {yr}")
 
     OUT_PATH.write_text(json.dumps(records))
     print(f"\nwrote {len(records)} records to {OUT_PATH.name}")

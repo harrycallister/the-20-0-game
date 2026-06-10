@@ -166,6 +166,10 @@ LEGENDS = [
     ("Howard Twilley", "Tulsa", 1965, "WR", 90, {"SPD": 82, "CTH": 95, "RTE": 92, "RZN": 88}),
     ("Bubba Smith", "Michigan State", 1966, "DC", 95, {"PRS": 95, "RDF": 96, "BLH": 84}, "DE"),
 
+    # ---- API data holes (seasons CFBD is simply missing) ----
+    ("Cam Newton", "Auburn", 2010, "QB", 99, {"ARM": 92, "ACC": 88, "AWR": 92, "DEEP": 90, "RUN": 99}),
+    ("Troy Smith", "Ohio State", 2006, "QB", 92, {"ARM": 88, "ACC": 92, "AWR": 92, "DEEP": 88, "RUN": 80}),
+
     # ================= 2004-2015 defensive gap =================
     # CFBD has NO individual defensive stats before 2016 (verified against
     # the API, including explicit category=defensive requests), so the great

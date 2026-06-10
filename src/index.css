@@ -1148,6 +1148,31 @@ body {
   border-radius: 4px;
   vertical-align: middle;
 }
+.heisman-badge {
+  background: #c1432e;
+  color: #faf5e6;
+}
+/* recap honors row: conference title + Heisman callouts */
+.honors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0.2rem;
+}
+.honor {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: #faf5e6;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 0.3rem 0.65rem;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.honor.lost {
+  opacity: 0.6;
+  box-shadow: none;
+}
 .pick-team {
   font-size: 0.9rem;
   font-weight: 600;

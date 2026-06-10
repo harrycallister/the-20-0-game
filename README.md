@@ -87,11 +87,13 @@ Vintage football-program aesthetic: aged-paper palette, varsity block display fo
 
 Everything except the leaderboard is static; there is no game server. Any device can reproduce a daily challenge from the date alone.
 
-## The 15-0 Game (College Football edition)
+## The 16-0 Game (College Football edition)
 
-The same engine ships a CFB edition at **go15-0.com**: 12 regular-season
-games + the 12-team Playoff (bye → quarterfinal → semifinal → national
-championship) = a perfect **15-0**. Everything sport-specific lives in
+The same engine ships a CFB edition at **go16-0game.com**: 12 regular-season
+games + the conference championship + the 12-team Playoff (bye →
+quarterfinal → semifinal → national championship) = a perfect **16-0**.
+Winning the CCG earns a "Conference Champion" badge, and drafting a Heisman
+season (52 are flagged, 1935-2025) shows a Heisman badge. Everything sport-specific lives in
 `src/sports/{nfl,cfb}.js`; Vite resolves `src/sport.js` to exactly one of
 them per build (`npm run build` → NFL → `dist/`, `npm run build:cfb` → CFB →
 `dist-cfb/`), so neither bundle contains a byte of the other sport. Separate

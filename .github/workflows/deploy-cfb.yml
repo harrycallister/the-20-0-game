@@ -35,7 +35,7 @@ jobs:
       - run: npm ci
       - run: npm run build:cfb
       # Custom domain (keeps the Pages setting from being wiped each deploy)
-      - run: echo "go15-0.com" > dist-cfb/CNAME
+      - run: echo "go16-0game.com" > dist-cfb/CNAME
       - uses: peaceiris/actions-gh-pages@v4
         if: env.HAS_DEPLOY_TOKEN == 'true'
         with:
