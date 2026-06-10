@@ -42,7 +42,8 @@ export function buildShareText(s) {
     `${s.wins}-${s.losses} — ${flavorLine(s)}`,
     regGrid + poGrid,
     Number.isFinite(s.score) ? `Score: ${s.score}` : null,
-    SITE_URL,
+    // utm_source=share lets GA4 split friend-share visits from other channels
+    `${SITE_URL}/?utm_source=share&utm_medium=social`,
   ]
     .filter(Boolean)
     .join('\n')
