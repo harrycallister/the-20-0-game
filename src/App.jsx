@@ -42,9 +42,13 @@ import {
   getSubmitted,
 } from './leaderboard.js'
 
-// Masthead pieces: "The 20–0 Game" / "The 15–0 Game" with the styled dash,
+// Masthead pieces: "The 20–0 Game" / "The 16–0 Game" with the styled dash,
 // derived from the sport's perfect record ("20-0" → ["20", "0"]).
 const [REC_WINS, REC_LOSSES] = SPORT.meta.perfectName.split('-')
+
+// Sport class on <body> so CSS can scope sport-specific tweaks (e.g. the
+// CFB field is taller on phones — its wishbone needs the vertical room).
+document.body.classList.add(`sport-${SPORT.key}`)
 
 export default function App() {
   const [players, setPlayers] = useState(null)

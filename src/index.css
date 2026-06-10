@@ -1173,6 +1173,15 @@ body {
   opacity: 0.6;
   box-shadow: none;
 }
+/* CFB field on phones: the wishbone stacks four chips down the middle
+   (CAPT → OL → QB → FB), so the short width-driven field height isn't
+   enough — give it a taller aspect. NFL keeps the classic 4:3 everywhere. */
+@media (max-width: 540px) {
+  .sport-cfb .field {
+    aspect-ratio: 0.85;
+    max-height: 470px;
+  }
+}
 .pick-team {
   font-size: 0.9rem;
   font-weight: 600;
