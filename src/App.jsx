@@ -32,6 +32,13 @@ import {
   shareResultText,
   shareNodeAsImage,
 } from './share.js'
+import {
+  leaderboardEnabled,
+  submitDailyRun,
+  fetchDailyTop,
+  getPlayerName,
+  getSubmitted,
+} from './leaderboard.js'
 
 export default function App() {
   const [players, setPlayers] = useState(null)
@@ -352,39 +359,58 @@ function FieldView({ slots, roster, currentTeam }) {
   )
 }
 
-const SPIN_MS = 700
+const SPIN_MS = 900
 const SPIN_TICK = 65
 
 function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, expert, onPick, onReroll }) {
   const [display, setDisplay] = useState(team)
-  const [spinning, setSpinning] = useState(false)
+  // 'await' (press Spin) -> 'spin' (reel running) -> 'ready' (team revealed)
+  const [phase, setPhase] = useState('await')
   const [choosing, setChoosing] = useState(null) // { player, positions:[pos] }
+  const autoSpin = useRef(false) // reroll click spins without a second press
+  const tickRef = useRef(null)
+  const stopRef = useRef(null)
+  const spinning = phase === 'spin'
 
-  // Spin the reel each time a new team comes on the clock.
-  useEffect(() => {
-    setChoosing(null)
+  function clearTimers() {
+    clearInterval(tickRef.current)
+    clearTimeout(stopRef.current)
+  }
+
+  function startSpin() {
     const reduce =
       typeof window !== 'undefined' &&
       window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduce || !reel || reel.length === 0) {
       setDisplay(team)
-      setSpinning(false)
+      setPhase('ready')
       return
     }
-    setSpinning(true)
-    const tick = setInterval(() => {
+    setPhase('spin')
+    tickRef.current = setInterval(() => {
       setDisplay(reel[Math.floor(Math.random() * reel.length)])
     }, SPIN_TICK)
-    const stop = setTimeout(() => {
-      clearInterval(tick)
+    stopRef.current = setTimeout(() => {
+      clearInterval(tickRef.current)
       setDisplay(team)
-      setSpinning(false)
+      setPhase('ready')
     }, SPIN_MS)
-    return () => {
-      clearInterval(tick)
-      clearTimeout(stop)
+  }
+
+  // Each new team on the clock waits behind the Spin button — except after a
+  // reroll, where the click itself is the "spin" gesture.
+  useEffect(() => {
+    setChoosing(null)
+    clearTimers()
+    if (autoSpin.current) {
+      autoSpin.current = false
+      startSpin()
+    } else {
+      setPhase('await')
     }
+    return clearTimers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team, reel])
 
   const formationPos = new Set(slots.map((s) => s.pos))
@@ -417,8 +443,11 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
         </span>
         <button
           className="btn ghost reroll"
-          onClick={onReroll}
-          disabled={rerollsLeft <= 0 || spinning || !!choosing}
+          onClick={() => {
+            autoSpin.current = true
+            onReroll()
+          }}
+          disabled={rerollsLeft <= 0 || phase !== 'ready' || !!choosing}
         >
           <DiceIcon />
           New Team
@@ -430,15 +459,31 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
         </button>
       </div>
 
-      <div className={`team-banner ${spinning ? 'spinning' : ''}`}>
-        <span className="team-name">{display.team}</span>
-        <span className="team-year">{display.year}</span>
-        <span className="team-sub">
-          {spinning ? 'Spinning…' : 'On the clock — draft a player'}
-        </span>
+      <div className={`team-banner ${spinning ? 'spinning' : ''} ${phase === 'await' ? 'mystery' : ''}`}>
+        {phase === 'await' ? (
+          <>
+            <span className="team-name">? ? ?</span>
+            <span className="team-sub">A team is waiting on the clock</span>
+          </>
+        ) : (
+          <>
+            <span className="team-name">{display.team}</span>
+            <span className="team-year">{display.year}</span>
+            <span className="team-sub">
+              {spinning ? 'Spinning…' : 'On the clock — draft a player'}
+            </span>
+          </>
+        )}
       </div>
 
-      {spinning ? (
+      {phase === 'await' ? (
+        <div className="spin-stage">
+          <button className="btn solid spin-cta" onClick={startSpin}>
+            <DiceIcon />
+            Spin for a Team
+          </button>
+        </div>
+      ) : spinning ? (
         <div className="board-spinning">Finding a team…</div>
       ) : choosing ? (
         <div className="slot-chooser">
@@ -682,6 +727,21 @@ function DailyRecap({ summary, streak, week, onFreePlay }) {
         slots={recapSlots}
         roster={recapRoster}
       />
+      <DailyLeaderboard
+        day={summary.date}
+        score={summary.score}
+        wins={summary.wins}
+        losses={summary.losses}
+        rosterAvg={
+          snap && snap.some((e) => e.name)
+            ? snap.filter((e) => e.name).reduce((s, e) => s + e.rating, 0) /
+              snap.filter((e) => e.name).length
+            : null
+        }
+        picks={snap
+          ?.filter((e) => e.name)
+          .map((e) => ({ slot: e.label, name: e.name, team: e.team, year: e.year, rating: e.rating }))}
+      />
       <button className="btn text" onClick={onFreePlay}>
         Play Free Play instead
       </button>
@@ -799,6 +859,87 @@ const ShareCard = forwardRef(function ShareCard(
   )
 })
 
+// Daily leaderboard: name + submit once per device per day, then today's
+// top runs. Free Play never touches it (results aren't comparable there).
+function DailyLeaderboard({ day, score, wins, losses, rosterAvg, picks }) {
+  const [name, setName] = useState(() => getPlayerName())
+  const [submitted, setSubmitted] = useState(() => !!getSubmitted(day))
+  const [rows, setRows] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!submitted) return
+    let alive = true
+    fetchDailyTop(day)
+      .then((r) => alive && setRows(r))
+      .catch((e) => alive && setError(e.message))
+    return () => {
+      alive = false
+    }
+  }, [day, submitted])
+
+  if (!leaderboardEnabled || !Number.isFinite(score)) return null
+
+  async function submit(e) {
+    e.preventDefault()
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      await submitDailyRun({ day, name, score, wins, losses, rosterAvg, picks })
+      setSubmitted(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="lb">
+      <h3 className="lb-head">
+        <span className="kicker">Daily #{puzzleNumber(day)}</span>
+        Leaderboard
+      </h3>
+      {!submitted ? (
+        <form className="lb-join" onSubmit={submit}>
+          <input
+            className="lb-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name"
+            maxLength={20}
+            required
+          />
+          <button className="btn solid lb-btn" disabled={busy}>
+            {busy ? 'Posting…' : `Post my ${score}`}
+          </button>
+        </form>
+      ) : rows === null && !error ? (
+        <div className="lb-note">Loading today's board…</div>
+      ) : rows && rows.length > 0 ? (
+        <ol className="lb-list">
+          {rows.map((r) => (
+            <li key={r.rank} className={`lb-row ${r.mine ? 'mine' : ''}`}>
+              <span className="lb-rank">{r.rank}</span>
+              <span className="lb-name">
+                {r.name}
+                {r.mine && <em> (you)</em>}
+              </span>
+              <span className="lb-rec">{r.record}</span>
+              <span className="lb-score">{r.score}</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        !error && <div className="lb-note">No runs posted yet — you're first!</div>
+      )}
+      {error && <div className="lb-note lb-error">{error}</div>}
+    </div>
+  )
+}
+
 function SimResult({ result, slots, roster, daily }) {
   const summary = summaryFromResult(result, daily)
   return (
@@ -867,6 +1008,21 @@ function SimResult({ result, slots, roster, daily }) {
         slots={slots}
         roster={roster}
       />
+      {daily && (
+        <DailyLeaderboard
+          day={daily}
+          score={result.score}
+          wins={result.wins}
+          losses={result.losses}
+          rosterAvg={result.avg}
+          picks={slots
+            .map((s) => {
+              const p = roster[s.key]
+              return p && { slot: s.label, name: p.name, team: p.team, year: p.year, rating: p.rating }
+            })
+            .filter(Boolean)}
+        />
+      )}
     </div>
   )
 }
