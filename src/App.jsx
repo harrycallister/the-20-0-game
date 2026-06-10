@@ -620,6 +620,9 @@ function StatLine({ stats }) {
 function FormationSelect({ onChoose, mode, setMode, expert, setExpert, stats, dailyDone }) {
   const streak = dailyStreak()
   const week = lastNDays(7)
+  // Picking a playbook only selects it — the draft starts on the button
+  // below, so style + playbook can be changed freely first.
+  const [selected, setSelected] = useState(null)
   return (
     <section className="formation-select">
       {stats.played > 0 && (
@@ -686,7 +689,10 @@ function FormationSelect({ onChoose, mode, setMode, expert, setExpert, stats, da
           <ul className="formation-list">
             {FORMATIONS.map((f, i) => (
               <li key={f.key} style={{ '--i': i }}>
-                <button className="formation-card" onClick={() => onChoose(f)}>
+                <button
+                  className={`formation-card ${selected?.key === f.key ? 'on' : ''}`}
+                  onClick={() => setSelected(f)}
+                >
                   <span className="fc-top">
                     <span className="fc-name">{f.name}</span>
                     <span className="fc-personnel">{f.personnel}</span>
@@ -710,6 +716,16 @@ function FormationSelect({ onChoose, mode, setMode, expert, setExpert, stats, da
               </li>
             ))}
           </ul>
+          <button
+            className="btn solid start-game"
+            disabled={!selected}
+            onClick={() => selected && onChoose(selected)}
+          >
+            <PlayIcon />
+            {selected
+              ? `Start Drafting — ${selected.name} · ${expert ? 'Expert' : 'Classic'}`
+              : 'Pick a playbook to start'}
+          </button>
         </>
       )}
     </section>

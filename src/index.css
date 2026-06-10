@@ -330,6 +330,21 @@ body {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--ink);
 }
+.formation-card.on {
+  background: var(--gold-weak);
+  box-shadow: var(--shadow);
+}
+
+/* start button under the playbook list */
+.start-game {
+  width: 100%;
+  margin-top: 0.9rem;
+}
+.start-game:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
 .fc-top {
   grid-area: top;
   display: flex;
