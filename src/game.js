@@ -188,6 +188,55 @@ function playGame(avg, oppBase, spread, captainRole) {
   return { opponent: Math.round(opponent), win: myRoll >= oppRoll, style }
 }
 
+// ---- Team MVP ---------------------------------------------------------------
+// The roster's top performer, shown on the recap (config-gated via
+// SPORT.features.mvp). PURE + deterministic — no rng — so the daily shows
+// the same MVP to everyone: overall rating + how featured the position is
+// in the chosen playbook + the captain's matchup expected value.
+export function teamMVP(roster, formation, slots) {
+  const skill = formation?.skill || { RB: 1, WR: 2, TE: 1 }
+  const evOf = (role) => {
+    const b = CAPTAIN_BONUS[role]
+    if (!b) return 0
+    return SEASON.passHeavyRate * b.pass + (1 - SEASON.passHeavyRate) * b.run
+  }
+  const bonus = (p) => {
+    switch (p.pos) {
+      case 'QB': return 1.5 * (skill.WR - skill.RB) // air raid +4.5, wishbone -3
+      case 'WR': return 1.0 * (skill.WR - 1)
+      case 'RB': return 1.6 * (skill.RB - 1)
+      case 'TE': return 1.4 * (skill.TE - 1)
+      case 'OL': return 0.6 * skill.RB - 2 // run-heavy schemes showcase the line
+      case 'DC': return 1.6 * evOf(p.role) - 1
+      case 'DEF': return -1.5 // units only win when clearly the class of the team
+      default: return 0
+    }
+  }
+  let best = null
+  for (const s of slots) {
+    const p = roster[s.key]
+    if (!p) continue
+    const score = p.rating + bonus(p)
+    if (!best || score > best.score) best = { player: p, slot: s, score }
+  }
+  return best
+}
+
+// One-line recap blurb for the MVP, flavored by playbook + position.
+export function mvpBlurb(p, formation) {
+  const scheme = formation?.name || 'offense'
+  switch (p.pos) {
+    case 'QB': return `Your ${scheme} ran through him all season.`
+    case 'RB': return 'Workhorse of the ground game.'
+    case 'WR': return 'Every big drive went his way.'
+    case 'TE': return 'The mismatch nobody could cover.'
+    case 'OL': return 'Won the line of scrimmage every week.'
+    case 'DC': return 'Set the tone on defense.'
+    case 'DEF': return 'The defense WAS the identity.'
+    default: return 'Carried the team.'
+  }
+}
+
 // Average the roster ratings. Higher average -> wins more games.
 export function averageRating(roster) {
   const picks = Object.values(roster).filter(Boolean)

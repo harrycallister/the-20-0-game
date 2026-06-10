@@ -1173,6 +1173,59 @@ body {
   opacity: 0.6;
   box-shadow: none;
 }
+/* Team MVP card on the recap */
+.mvp-card {
+  margin: 0.9rem 0 0.2rem;
+  background: #faf5e6;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 0.7rem 0.85rem;
+}
+.mvp-kicker {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c1432e;
+  margin-bottom: 0.4rem;
+}
+.mvp-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.mvp-ovr {
+  font-family: 'Graduate', 'Arial Black', sans-serif;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.mvp-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mvp-who b {
+  font-size: 1.02rem;
+}
+.mvp-who em {
+  font-style: normal;
+  font-size: 0.78rem;
+  color: #6f6a58;
+  font-weight: 600;
+}
+.mvp-stats {
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.mvp-blurb {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: #6f6a58;
+  font-weight: 600;
+}
 /* CFB field on phones: the wishbone stacks four chips down the middle
    (CAPT → OL → QB → FB), so the short width-driven field height isn't
    enough — give it a taller aspect. NFL keeps the classic 4:3 everywhere. */

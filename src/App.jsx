@@ -10,6 +10,8 @@ import {
   eligiblePositions,
   averageRating,
   simulateSeason,
+  teamMVP,
+  mvpBlurb,
   setSeed,
   clearSeed,
   dailySeed,
@@ -314,6 +316,7 @@ export default function App() {
               result={result}
               slots={slots}
               roster={roster}
+              formation={formation}
               daily={mode === 'daily' ? todayKey() : null}
             />
           )}
@@ -1125,8 +1128,9 @@ function DailyLeaderboard({ day, score, wins, losses, rosterAvg, picks }) {
   )
 }
 
-function SimResult({ result, slots, roster, daily }) {
+function SimResult({ result, slots, roster, formation, daily }) {
   const summary = summaryFromResult(result, daily)
+  const mvp = SPORT.features?.mvp ? teamMVP(roster, formation, slots) : null
   return (
     <div className={`result ${result.tier.perfect ? 'perfect' : ''}`}>
       <div className="result-top">
@@ -1152,7 +1156,9 @@ function SimResult({ result, slots, roster, daily }) {
         const heismen = Object.values(roster)
           .filter((p) => p && p.heisman)
           .map((p) => p.name)
-        if (!result.confChampion && heismen.length === 0) return null
+        // confChampion is null for sports without a CCG (NFL) — only then
+        // does a loss row get skipped entirely
+        if (result.confChampion == null && heismen.length === 0) return null
         return (
           <div className="honors">
             {result.confChampion && (
@@ -1167,6 +1173,44 @@ function SimResult({ result, slots, roster, daily }) {
           </div>
         )
       })()}
+
+      {mvp && (
+        <div className="mvp-card">
+          <div className="mvp-kicker">⭐ Team MVP</div>
+          <div className="mvp-main">
+            <span className={`mvp-ovr ${ratingClass(mvp.player.rating)}`}>
+              {mvp.player.rating}
+            </span>
+            <span className="mvp-who">
+              <b>
+                {mvp.player.name}
+                {mvp.player.tier === 'legend' && (
+                  <span className="legend-badge">Legend</span>
+                )}
+                {mvp.player.heisman && (
+                  <span className="legend-badge heisman-badge">Heisman</span>
+                )}
+              </b>
+              <em>
+                {mvp.slot.label} · {mvp.player.dpos ? `${mvp.player.dpos} · ` : ''}
+                {mvp.player.team} {mvp.player.year}
+              </em>
+            </span>
+          </div>
+          <div className="mvp-stats">
+            {mvp.player.stats
+              ? Object.entries(mvp.player.stats)
+                  .map(([k, v]) => `${k} ${typeof v === 'number' ? v.toLocaleString() : v}`)
+                  .join('  ·  ')
+              : Object.entries(mvp.player.ratings || {})
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 3)
+                  .map(([k, v]) => `${k} ${v}`)
+                  .join('  ·  ')}
+          </div>
+          <div className="mvp-blurb">{mvpBlurb(mvp.player, formation)}</div>
+        </div>
+      )}
 
       <div className="phase-label">
         Regular Season<i>{result.regWins}–{result.regLosses}</i>

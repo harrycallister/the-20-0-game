@@ -3,7 +3,7 @@
 import assert from 'node:assert'
 import { computeScore, WEIGHTS } from '../src/score.js'
 import { buildShareText, puzzleNumber } from '../src/share.js'
-import { FORMATIONS, simulateSeason, setSeed, clearSeed } from '../src/game.js'
+import { FORMATIONS, simulateSeason, teamMVP, buildSlots, setSeed, clearSeed } from '../src/game.js'
 import SPORT from '../src/sport.js'
 
 assert.equal(SPORT.key, 'cfb', 'run with VITE_SPORT=cfb')
@@ -59,6 +59,23 @@ assert.ok(text.startsWith('The 16-0 Game #1\n'))
 assert.ok(text.includes('Lost the National Championship 😤'))
 assert.equal(puzzleNumber(SPORT.meta.dailyEpoch), 1)
 assert.ok([...text].length < 280)
+
+// Team MVP: deterministic, scheme-aware. Equal-rated QB and RB: the QB wins
+// it in Air Raid, the RB wins it in the Triple Option.
+{
+  const air = FORMATIONS.find((f) => f.key === 'air-raid')
+  const triSlots = buildSlots(tri)
+  const airSlots = buildSlots(air)
+  const mk = (pos, rating) => ({ pos, rating, name: pos, team: 'T', year: 2020 })
+  const rosterFor = (slots) =>
+    Object.fromEntries(slots.map((s) => [s.key, mk(s.pos, 90)]))
+  const a = teamMVP(rosterFor(airSlots), air, airSlots)
+  const t = teamMVP(rosterFor(triSlots), tri, triSlots)
+  assert.equal(a.player.pos, 'QB', 'Air Raid MVP should be the QB')
+  assert.equal(t.player.pos, 'RB', 'Triple Option MVP should be an RB')
+  // deterministic: same inputs, same MVP
+  assert.equal(teamMVP(rosterFor(airSlots), air, airSlots).player.pos, 'QB')
+}
 
 // Sim balance: perfect-season and title rates by roster strength over 20k
 // seasons each. 16-0 should be rare but reachable for elite rosters.
