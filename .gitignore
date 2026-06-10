@@ -5,3 +5,7 @@ dist
 *.local
 .playwright-mcp
 *.output
+dist-cfb
+.venv-cfb
+data/cfbd_cache
+__pycache__

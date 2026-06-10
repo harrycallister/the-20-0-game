@@ -5,9 +5,11 @@
 // (unique day+client_id). `picks` is stored with each run so suspicious
 // scores can be replay-validated later (daily runs are fully seeded).
 
+import SPORT from './sport.js'
+
 const SUPA_URL = import.meta.env?.VITE_SUPABASE_URL
 const SUPA_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY
-const RUNS = `${SUPA_URL}/rest/v1/daily_runs`
+const RUNS = `${SUPA_URL}/rest/v1/${SPORT.meta.leaderboardTable}`
 
 export const leaderboardEnabled = Boolean(SUPA_URL && SUPA_KEY)
 
@@ -19,9 +21,10 @@ const HEADERS = {
 
 // ---- local identity --------------------------------------------------------
 
-const CLIENT_KEY = 'twenty-zero-client-v1'
-const NAME_KEY = 'twenty-zero-name-v1'
-const SUBMIT_KEY = 'twenty-zero-lb-v1' // { [day]: name } — days already submitted
+const PREFIX = SPORT.meta.storagePrefix
+const CLIENT_KEY = `${PREFIX}-client-v1`
+const NAME_KEY = `${PREFIX}-name-v1`
+const SUBMIT_KEY = `${PREFIX}-lb-v1` // { [day]: name } — days already submitted
 
 export function clientId() {
   try {

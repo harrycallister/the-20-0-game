@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:cfb": "vite --mode cfb --open /cfb.html",
+    "build:cfb": "vite build --mode cfb && mv dist-cfb/cfb.html dist-cfb/index.html",
+    "preview:cfb": "vite preview --mode cfb --outDir dist-cfb"
   },
   "dependencies": {
     "html-to-image": "^1.11.13",

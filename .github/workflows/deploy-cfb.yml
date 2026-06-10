@@ -1,0 +1,45 @@
+# Deploys the CFB edition (The 15-0 Game) to the harrycallister/the-15-0-game
+# repo's GitHub Pages. The NFL deploy (deploy.yml) is untouched.
+#
+# ONE-TIME SETUP (required before this workflow can run):
+#   1. Create a fine-grained PAT with Contents: read/write on the
+#      the-15-0-game repo only.
+#   2. Add it as the secret CFB_DEPLOY_TOKEN in THIS repo's
+#      Settings -> Secrets and variables -> Actions.
+#   3. In the-15-0-game repo: Settings -> Pages -> deploy from branch
+#      `gh-pages` (created on first run).
+name: Deploy CFB to the-15-0-game Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-cfb
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    # Skip cleanly until the CFB_DEPLOY_TOKEN secret exists, so NFL pushes
+    # to main don't show a failing CFB job in the meantime.
+    env:
+      HAS_DEPLOY_TOKEN: ${{ secrets.CFB_DEPLOY_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:cfb
+      # Custom domain (keeps the Pages setting from being wiped each deploy)
+      - run: echo "go15-0.com" > dist-cfb/CNAME
+      - uses: peaceiris/actions-gh-pages@v4
+        if: env.HAS_DEPLOY_TOKEN == 'true'
+        with:
+          personal_token: ${{ secrets.CFB_DEPLOY_TOKEN }}
+          external_repository: harrycallister/the-15-0-game
+          publish_branch: gh-pages
+          publish_dir: dist-cfb

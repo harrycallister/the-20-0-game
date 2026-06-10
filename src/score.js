@@ -4,27 +4,16 @@
 // Pure + deterministic: same sim result + same roster always gives the same
 // score (no randomness, no dates, no globals). All tuning lives in WEIGHTS.
 
-export const WEIGHTS = {
-  // Regular season: 17 wins x 3 = 51 pts max. The bulk of the score, so a
-  // 12-5 also-ran and a 16-1 contender feel meaningfully different.
-  REG_WIN: 3,
-  // Playoff depth: 3 wins x 9 = 27 pts max. A playoff win is worth three
-  // regular-season wins — going deep matters more than padding the record.
-  PLAYOFF_WIN: 9,
-  // Winning the Super Bowl at all: +8.
-  CHAMPION: 8,
-  // The perfect 20-0 on top of the title: +6 (base total 92).
-  PERFECT: 6,
-  // Underdog bonus: +0.5 pt per rating point your roster average sits below
-  // the pivot, capped. Rewards winning with a weaker roster.
-  UNDERDOG_PIVOT: 90,
-  UNDERDOG_RATE: 0.5,
-  UNDERDOG_MAX: 5,
-  // Legend restraint: champions get +1 per legend they did NOT use, up to 3.
-  // (Champion-only so a 4-13 legend-free team doesn't farm free points.)
-  LEGEND_BONUS_MAX: 3,
-  // Max possible: 51 + 27 + 8 + 6 + 5 + 3 = 100 exactly.
-}
+import SPORT from './sport.js'
+
+// Weights live in the sport config, tuned per sport so the max possible
+// score is exactly 100 (regular wins + playoff wins + champion + perfect +
+// underdog cap + legend bonus). NFL: 17*3 + 3*9 + 8 + 6 + 5 + 3 = 100.
+// CFB: 12*4 + 3*10 + 8 + 6 + 5 + 3 = 100. A playoff win is worth ~3x a
+// regular-season win; the underdog bonus (+0.5/pt below the pivot, capped)
+// rewards winning with a weaker roster; champions get +1 per legend they
+// did NOT use (champion-only so a losing legend-free team can't farm it).
+export const WEIGHTS = SPORT.score
 
 // `roster` is the slotKey -> player object map (or any iterable of players).
 export function computeScore(result, roster) {

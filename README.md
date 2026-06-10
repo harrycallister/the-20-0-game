@@ -87,6 +87,32 @@ Vintage football-program aesthetic: aged-paper palette, varsity block display fo
 
 Everything except the leaderboard is static; there is no game server. Any device can reproduce a daily challenge from the date alone.
 
+## The 15-0 Game (College Football edition)
+
+The same engine ships a CFB edition at **go15-0.com**: 12 regular-season
+games + the 12-team Playoff (bye → quarterfinal → semifinal → national
+championship) = a perfect **15-0**. Everything sport-specific lives in
+`src/sports/{nfl,cfb}.js`; Vite resolves `src/sport.js` to exactly one of
+them per build (`npm run build` → NFL → `dist/`, `npm run build:cfb` → CFB →
+`dist-cfb/`), so neither bundle contains a byte of the other sport. Separate
+entry (`cfb.html`), static assets (`public-cfb/`), localStorage namespace,
+Supabase table (`daily_runs_cfb`), and deploy target
+(`.github/workflows/deploy-cfb.yml` → the `the-15-0-game` repo's Pages).
+
+CFB data: `ratings_cfb.py` (own venv: `.venv-cfb`, the `cfbd` package
+conflicts with nflreadpy's pydantic) pulls CollegeFootballData.com with a
+strict cache (`data/cfbd_cache/`, re-runs cost zero API calls; needs
+`CFBD_API_KEY` only on cache misses). Usable API coverage is 2006-2025 with
+individual defense only from 2016; `cfb_legends.py` hand-curates 130
+legends (1924-2015) to fill the gaps.
+
+```bash
+npm run dev:cfb                      # local CFB dev server (/cfb.html)
+.venv-cfb/bin/python ratings_cfb.py  # rebuild players_cfb.json
+cp players_cfb.json public-cfb/      # the app serves the public-cfb copy
+VITE_SPORT=cfb node scripts/test-cfb.mjs   # CFB score/share/balance checks
+```
+
 ## Develop
 
 ```bash

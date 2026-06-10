@@ -3,16 +3,17 @@
 // render-the-recap-to-PNG path for image shares.
 
 import { toBlob, getFontEmbedCSS } from 'html-to-image'
+import SPORT from './sport.js'
 
 // Single source of truth for the site's absolute URL. Set in `.env`
 // (VITE_SITE_URL) — change it there once when moving to a custom domain.
 export const SITE_URL = (
-  import.meta.env?.VITE_SITE_URL || 'https://harrycallister.github.io/the-20-0-game'
+  import.meta.env?.VITE_SITE_URL || SPORT.meta.defaultSiteUrl
 ).replace(/\/+$/, '')
 
 // Daily puzzle numbering: puzzle #1 is DAILY_EPOCH (UTC). Keys are
 // YYYY-MM-DD, so Date.parse gives clean UTC midnights.
-const DAILY_EPOCH = '2026-06-09'
+const DAILY_EPOCH = SPORT.meta.dailyEpoch
 export function puzzleNumber(dateKey) {
   const days = (Date.parse(dateKey) - Date.parse(DAILY_EPOCH)) / 86400000
   return Math.round(days) + 1
@@ -20,13 +21,14 @@ export function puzzleNumber(dateKey) {
 
 // One-line verdict a stranger can parse without knowing the game.
 function flavorLine(s) {
-  if (s.perfect) return 'PERFECT SEASON 🐐'
-  if (s.champion) return 'Won the Super Bowl 🏆'
-  if (!s.made) return 'Missed the playoffs 💀'
+  const F = SPORT.share.flavor
+  if (s.perfect) return F.perfect
+  if (s.champion) return F.champion
+  if (!s.made) return F.missed
   const playoffWins = s.playoffs.filter(Boolean).length
-  if (playoffWins === 2) return 'Lost the Super Bowl 😤'
-  if (playoffWins === 1) return 'Lost the Conference title game 😩'
-  return 'One-and-done in the playoffs 😬'
+  if (playoffWins === 2) return F.lostFinal
+  if (playoffWins === 1) return F.lostSemifinal
+  return F.oneAndDone
 }
 
 // Build the share payload from a normalized summary:
@@ -34,7 +36,7 @@ function flavorLine(s) {
 //   score, daily } — `daily` is the YYYY-MM-DD key, or falsy for Free Play.
 // Kept under ~280 chars so it pastes cleanly to X too.
 export function buildShareText(s) {
-  const header = `The 20-0 Game ${s.daily ? `#${puzzleNumber(s.daily)}` : '— Free Play'}`
+  const header = `${SPORT.meta.title} ${s.daily ? `#${puzzleNumber(s.daily)}` : '— Free Play'}`
   const regGrid = s.reg.map((w) => (w ? '🟩' : '🟥')).join('')
   const poGrid = s.made ? ' | ' + s.playoffs.map((w) => (w ? '🏆' : '🟥')).join('') : ''
   return [

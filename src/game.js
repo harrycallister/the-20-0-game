@@ -1,4 +1,8 @@
-// Game logic + simulation for the 20-0 Game.
+// Game logic + simulation. Sport-agnostic: every sport-specific constant
+// (playbooks, season shape, playoff rounds, tier names, captain tuning)
+// comes from the active sport config (src/sport.js).
+
+import SPORT from './sport.js'
 
 export const TOTAL_REROLLS = 2
 
@@ -34,47 +38,11 @@ function rng() {
   return _rng()
 }
 
-// Popular playbooks. Every offense fields the same 5 skill players (QB + 5 OL
-// aside) — the playbook just decides how those 5 split across RB/WR/TE, i.e.
-// real NFL personnel groupings. Defense, OL and QB are constant, so a roster is
-// always 9 picks; only the offensive shape changes.
-export const FORMATIONS = [
-  {
-    key: 'air-raid',
-    name: 'Air Raid',
-    personnel: '10 personnel',
-    blurb: 'Empty the backfield and let it fly.',
-    skill: { RB: 1, WR: 4, TE: 0 },
-  },
-  {
-    key: 'spread',
-    name: 'Spread',
-    personnel: '11 personnel',
-    blurb: 'The modern league standard — balanced and versatile.',
-    skill: { RB: 1, WR: 3, TE: 1 },
-  },
-  {
-    key: 'pro-style',
-    name: 'Pro Style',
-    personnel: '12 personnel',
-    blurb: 'Two tight ends, heavy play-action.',
-    skill: { RB: 1, WR: 2, TE: 2 },
-  },
-  {
-    key: 'power-run',
-    name: 'Power Run',
-    personnel: '21 personnel',
-    blurb: 'I-formation, lead blocker, downhill runs.',
-    skill: { RB: 2, WR: 2, TE: 1 },
-  },
-  {
-    key: 'smashmouth',
-    name: 'Smashmouth',
-    personnel: '22 personnel',
-    blurb: 'Jumbo sets. Ground and pound, impose your will.',
-    skill: { RB: 2, WR: 1, TE: 2 },
-  },
-]
+// Playbooks. Every offense fields the same 5 skill players (QB + 5 OL
+// aside) — the playbook just decides how those 5 split across RB/WR/TE.
+// Defense, OL and QB are constant, so a roster is always 9 picks; only the
+// offensive shape changes. Defined per sport in the config.
+export const FORMATIONS = SPORT.formations
 
 // Build the ordered list of draft slots for a chosen formation. Each slot has a
 // unique `key`, a display `label`, and the exact player `pos` it draws from.
@@ -173,40 +141,29 @@ export function drawCaptainCandidates(teamIndex, usedKeys = new Set(), n = 4) {
 
 // ---- Simulation -------------------------------------------------------------
 
-const REG_GAMES = 17
-const PLAYOFF_CUTOFF = 10 // regular-season wins needed to make the playoffs
+const SEASON = SPORT.season
+const REG_GAMES = SEASON.regGames
+const PLAYOFF_CUTOFF = SEASON.playoffCutoff // reg-season wins to make the playoffs
 
-// Earn a #1-seed bye, then three rounds. Win all 17 + all 3 -> 20-0.
-// Opponent bases sit ~2 pts above the pre-captain values to absorb the
-// average captain bonus, keeping overall difficulty (and daily scores)
-// comparable to before the Defensive Captain existed.
-const PLAYOFF_ROUNDS = [
-  { name: 'Divisional', short: 'DIV', oppBase: 90 },
-  { name: 'Conference', short: 'CONF', oppBase: 94 },
-  { name: 'Super Bowl', short: 'SB', oppBase: 97 },
-]
+// Earn a bye, then three rounds. Win every regular-season game + all 3
+// playoff rounds for the perfect season. Opponent bases sit ~2 pts above the
+// pre-captain values to absorb the average captain bonus, keeping overall
+// difficulty (and daily scores) comparable to before the Captain existed.
+const PLAYOFF_ROUNDS = SEASON.playoffRounds
 
 // Missed-playoff ladder (by regular-season wins), best first.
-const MISS_TIERS = [
-  { min: 9, name: 'In the Hunt', blurb: 'Just missed the cut.' },
-  { min: 7, name: 'Also-Ran', blurb: 'Stuck in the middle.' },
-  { min: 5, name: 'Rebuilding', blurb: 'Flashes, not enough.' },
-  { min: 3, name: 'Bottom Feeder', blurb: 'Eyeing the draft.' },
-  { min: 0, name: 'Relegation', blurb: 'Send them down.' },
-]
+const MISS_TIERS = SEASON.missTiers
 
-// Decide the season's headline result.
+// Decide the season's headline result. Playoff exits are matched by round
+// position (final / semifinal / first round), not by name, so any sport's
+// bracket labels work.
 function resultTier({ made, regWins, champion, roundReached }) {
-  if (champion && regWins === REG_GAMES)
-    return { name: '20-0', blurb: 'Perfect. Immortal.', perfect: true }
-  if (champion)
-    return { name: 'Super Bowl Champion', blurb: 'Hoisted the Lombardi.' }
-  if (made && roundReached === 'Super Bowl')
-    return { name: 'Super Bowl Runner-Up', blurb: 'One win from glory.' }
-  if (made && roundReached === 'Conference')
-    return { name: 'Conference Finalist', blurb: 'Fell in the title game.' }
-  if (made)
-    return { name: 'Divisional Exit', blurb: 'One and done in January.' }
+  const T = SEASON.tiers
+  if (champion && regWins === REG_GAMES) return { ...T.perfect, perfect: true }
+  if (champion) return { ...T.champion }
+  if (made && roundReached === PLAYOFF_ROUNDS[2].name) return { ...T.runnerUp }
+  if (made && roundReached === PLAYOFF_ROUNDS[1].name) return { ...T.semifinalExit }
+  if (made) return { ...T.earlyExit }
   return MISS_TIERS.find((t) => regWins >= t.min)
 }
 
@@ -216,16 +173,12 @@ function resultTier({ made, regWins, champion, roundReached }) {
 // is a playstyle bet, not a power pick: DB is boom-or-bust (huge vs pass,
 // nothing vs run), LB is steady everywhere, DL leans run-stuffing but the
 // pass rush still travels.
-const PASS_HEAVY_RATE = 0.55 // share of opponents that lean pass
-export const CAPTAIN_BONUS = {
-  DB: { pass: 4.0, run: 0.0 },
-  LB: { pass: 2.0, run: 2.0 },
-  DL: { pass: 2.0, run: 2.5 },
-}
+const PASS_HEAVY_RATE = SEASON.passHeavyRate // share of opponents that lean pass
+export const CAPTAIN_BONUS = SEASON.captainBonus
 
 // One game: higher rating wins more often. NOISE is the per-side randomness —
 // lower means results track roster strength more tightly (fewer flukes).
-const NOISE = 11
+const NOISE = SEASON.noise
 function playGame(avg, oppBase, spread, captainRole) {
   const style = rng() < PASS_HEAVY_RATE ? 'pass' : 'run'
   const bonus = CAPTAIN_BONUS[captainRole]?.[style] ?? 0
@@ -242,14 +195,14 @@ export function averageRating(roster) {
   return picks.reduce((sum, p) => sum + p.rating, 0) / picks.length
 }
 
-// Run a full season: 17 regular-season games, then (if qualified) a
+// Run a full season: every regular-season game, then (if qualified) a
 // single-elimination postseason of progressively tougher rounds. Win every
-// game — 17 regular + 3 playoff — to finish 20-0.
+// game — regular season + all 3 playoff rounds — for the perfect season.
 export function simulateSeason(avg, captainRole = null) {
   const reg = []
   let regWins = 0
   for (let week = 1; week <= REG_GAMES; week += 1) {
-    const g = playGame(avg, 85, 22, captainRole) // league strength ~74-96
+    const g = playGame(avg, SEASON.leagueBase, SEASON.leagueSpread, captainRole)
     if (g.win) regWins += 1
     reg.push({ label: `${week}`, ...g })
   }
@@ -262,7 +215,7 @@ export function simulateSeason(avg, captainRole = null) {
   let roundReached = null
   if (made) {
     for (const round of PLAYOFF_ROUNDS) {
-      const g = playGame(avg, round.oppBase, 10, captainRole)
+      const g = playGame(avg, round.oppBase, SEASON.playoffSpread, captainRole)
       playoffs.push({ label: round.short, round: round.name, ...g })
       roundReached = round.name
       if (g.win) playoffWins += 1

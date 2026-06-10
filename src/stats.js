@@ -1,6 +1,12 @@
 // Career stats (localStorage) + shareable result text.
 
-const KEY = 'twenty-zero-stats-v1'
+import SPORT from './sport.js'
+
+// Per-sport namespace (NFL keeps its historical 'twenty-zero' keys so no
+// existing player loses stats, streaks, or today's daily lock).
+const PREFIX = SPORT.meta.storagePrefix
+
+const KEY = `${PREFIX}-stats-v1`
 const EMPTY = {
   played: 0,
   titles: 0,
@@ -41,7 +47,7 @@ export function recordResult(result) {
 // (Share text now lives in share.js — text-first, native share sheet.)
 
 // ---- Daily challenge: one attempt per (UTC) day + a play streak ----------
-const DAILY_KEY = 'twenty-zero-daily-v1'
+const DAILY_KEY = `${PREFIX}-daily-v1`
 
 export function todayKey() {
   return new Date().toISOString().slice(0, 10)

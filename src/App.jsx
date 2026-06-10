@@ -24,6 +24,7 @@ import {
   lastNDays,
 } from './stats.js'
 import { computeScore } from './score.js'
+import SPORT from './sport.js'
 import {
   SITE_URL,
   puzzleNumber,
@@ -40,6 +41,10 @@ import {
   getPlayerName,
   getSubmitted,
 } from './leaderboard.js'
+
+// Masthead pieces: "The 20–0 Game" / "The 15–0 Game" with the styled dash,
+// derived from the sport's perfect record ("20-0" → ["20", "0"]).
+const [REC_WINS, REC_LOSSES] = SPORT.meta.perfectName.split('-')
 
 export default function App() {
   const [players, setPlayers] = useState(null)
@@ -58,7 +63,7 @@ export default function App() {
   const [dailyDone, setDailyDone] = useState(() => getDaily(todayKey()))
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}players.json`)
+    fetch(`${import.meta.env.BASE_URL}${SPORT.meta.playersUrl}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.text()
@@ -334,7 +339,13 @@ function fieldLayout(slots) {
   place(group.OL || [], [50], 53) // line of scrimmage
   place(group.QB || [], [50], 64)
   const rb = group.RB || []
-  place(rb, rb.length === 1 ? [38] : [33, 67], 68)
+  if (rb.length === 3) {
+    // wishbone: fullback tucked behind the QB, halfbacks split deeper
+    place([rb[0]], [50], 77)
+    place(rb.slice(1), [30, 70], 85)
+  } else {
+    place(rb, rb.length === 1 ? [38] : [33, 67], 68)
+  }
   return out
 }
 
@@ -710,7 +721,7 @@ function FormationSelect({ onChoose, mode, setMode, expert, setExpert, stats, da
         <div className="career">
           <span className="cstat"><b>{stats.played}</b><em>Played</em></span>
           <span className="cstat"><b>{stats.titles}</b><em>Titles</em></span>
-          <span className="cstat"><b>{stats.perfects}</b><em>20-0</em></span>
+          <span className="cstat"><b>{stats.perfects}</b><em>{SPORT.meta.perfectName}</em></span>
           <span className="cstat"><b>{stats.bestWins || '—'}</b><em>Best W</em></span>
           <span className="cstat"><b>{streak}🔥</b><em>Streak</em></span>
         </div>
@@ -764,7 +775,7 @@ function FormationSelect({ onChoose, mode, setMode, expert, setExpert, stats, da
           </h2>
           <p className="draft-hint" style={{ borderTop: 'none', paddingTop: 0 }}>
             {mode === 'daily'
-              ? 'One run per day — same teams for everyone. Build the best 20-0 and share it.'
+              ? `One run per day — same teams for everyone. Build the best ${SPORT.meta.perfectName} and share it.`
               : "Your playbook sets the offensive personnel you'll draft"}
           </p>
           <ul className="formation-list">
@@ -915,15 +926,15 @@ function Masthead({ count, onHome }) {
       <div className="masthead-rule top" />
       <h1>
         <button className="masthead-home" onClick={onHome} title="Back to home">
-          The 20<span className="dash">–</span>0 Game
+          The {REC_WINS}<span className="dash">–</span>{REC_LOSSES} Game
         </button>
       </h1>
       <div className="dateline">
-        <span>Seasons 1999–2024</span>
+        <span>Seasons {SPORT.meta.seasonsLabel}</span>
         <span className="dot" />
         <span>{count.toLocaleString()} players</span>
         <span className="dot" />
-        <span>Chase the perfect 20–0 season</span>
+        <span>Chase the perfect {REC_WINS}–{REC_LOSSES} season</span>
       </div>
       <div className="masthead-rule bottom" />
     </header>
@@ -951,7 +962,7 @@ function ShareActions({ summary, tierName, slots, roster }) {
 
   async function onShareImage() {
     if (!cardRef.current) return
-    const name = `the-20-0-game-${summary.daily || 'free-play'}.png`
+    const name = `${SPORT.meta.shareFilePrefix}-${summary.daily || 'free-play'}.png`
     const outcome = await shareNodeAsImage(cardRef.current, name)
     if (outcome === 'downloaded') flash('Image saved ✓')
     else if (outcome === 'failed') flash('Could not create image')
@@ -994,7 +1005,7 @@ const ShareCard = forwardRef(function ShareCard(
   return (
     <div className="sharecard" ref={ref}>
       <div className="sc-masthead">
-        <span className="sc-title">The 20–0 Game</span>
+        <span className="sc-title">{`The ${REC_WINS}–${REC_LOSSES} Game`}</span>
         <span className="sc-no">
           {summary.daily ? `Daily #${puzzleNumber(summary.daily)}` : 'Free Play'}
         </span>
@@ -1143,7 +1154,7 @@ function SimResult({ result, slots, roster, daily }) {
       {result.made ? (
         <>
           <div className="phase-label">
-            Postseason<i>Road to 20–0</i>
+            Postseason<i>Road to {REC_WINS}–{REC_LOSSES}</i>
           </div>
           <div className="bracket">
             {result.playoffs.map((g, i) => (
@@ -1160,7 +1171,7 @@ function SimResult({ result, slots, roster, daily }) {
           </div>
         </>
       ) : (
-        <div className="missed">Missed the playoffs — no shot at 20–0 this year.</div>
+        <div className="missed">Missed the playoffs — no shot at {REC_WINS}–{REC_LOSSES} this year.</div>
       )}
 
       <ShareActions
