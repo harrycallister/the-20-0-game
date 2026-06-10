@@ -26,16 +26,32 @@ const CLIENT_KEY = `${PREFIX}-client-v1`
 const NAME_KEY = `${PREFIX}-name-v1`
 const SUBMIT_KEY = `${PREFIX}-lb-v1` // { [day]: name } — days already submitted
 
+// crypto.randomUUID only exists in secure contexts (https) — a phone on
+// plain http (e.g. before the domain's TLS cert is issued) throws at
+// submit time. Fall back to a v4 UUID built from getRandomValues, which
+// works in insecure contexts too.
+function uuid() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  const b =
+    typeof crypto !== 'undefined' && crypto.getRandomValues
+      ? crypto.getRandomValues(new Uint8Array(16))
+      : Uint8Array.from({ length: 16 }, () => Math.floor(Math.random() * 256))
+  b[6] = (b[6] & 0x0f) | 0x40
+  b[8] = (b[8] & 0x3f) | 0x80
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
+
 export function clientId() {
   try {
     let id = localStorage.getItem(CLIENT_KEY)
     if (!id) {
-      id = crypto.randomUUID()
+      id = uuid()
       localStorage.setItem(CLIENT_KEY, id)
     }
     return id
   } catch {
-    return crypto.randomUUID()
+    return uuid()
   }
 }
 
