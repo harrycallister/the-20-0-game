@@ -51,6 +51,40 @@ export function buildShareText(s) {
     .join('\n')
 }
 
+// ---- Challenge share (one-click, outcome-framed) ---------------------------
+// Builds the short dare/flex/agony line for "Share to X" / "Copy challenge".
+// Copy lives in SPORT.share.challenge (sports without it get null — the UI
+// hides the buttons). Career numbers fold the grind into the post; daily
+// runs are flagged distinctly with the puzzle number.
+// Tokens: {record} {attempt} {tries} {perfects}
+export function buildChallengeText(s, career = {}, { medium = 'share' } = {}) {
+  const c = SPORT.share.challenge
+  if (!c) return null
+  const template = s.perfect
+    ? c.perfect
+    : s.champion
+      ? c.champion
+      : s.losses <= 2
+        ? c.nearMiss
+        : c.dare
+  const line = template
+    .replaceAll('{record}', `${s.wins}-${s.losses}`)
+    .replaceAll('{attempt}', String(career.played || 1))
+    .replaceAll('{tries}', String(career.played || 1))
+    .replaceAll('{perfects}', String(career.perfects || 0))
+  const tag = s.daily ? `Daily #${puzzleNumber(s.daily)} — ` : ''
+  return [
+    tag + line,
+    `${SITE_URL}/?utm_source=share&utm_medium=${medium}`,
+  ].join('\n')
+}
+
+// X web intent: opens a prefilled compose window. The URL rides inside the
+// text so the copy reads the same on every surface.
+export function xIntentUrl(text) {
+  return `https://x.com/intent/post?text=${encodeURIComponent(text)}`
+}
+
 // Adapt a live sim result (game.js shape) to the share summary shape.
 export function summaryFromResult(result, daily) {
   return {
@@ -88,6 +122,12 @@ export async function shareResultText(text) {
       // fall through to clipboard on any other failure
     }
   }
+  return copyText(text)
+}
+
+// Clipboard with a legacy fallback for insecure (http) contexts. Exported
+// for actions that should copy directly instead of opening the share sheet.
+export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text)
     return 'copied'

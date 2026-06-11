@@ -93,14 +93,14 @@ export default {
       DL: { pass: 2.0, run: 2.5 },
     },
     tiers: {
-      perfect: { name: '16-0', blurb: 'Perfect. Immortal.' },
-      champion: { name: 'National Champion', blurb: 'Won the natty.' },
-      runnerUp: { name: 'National Runner-Up', blurb: 'One win from glory.' },
-      semifinalExit: { name: 'CFP Semifinalist', blurb: 'Fell a game short of the title game.' },
-      earlyExit: { name: 'Quarterfinal Exit', blurb: 'The bye didn’t help.' },
+      perfect: { name: '16-0', blurb: 'Perfect. Immortal. Yale 1894, Indiana 2025, you.' },
+      champion: { name: 'National Champion', blurb: 'Won the natty. The 16-0 got away.' },
+      runnerUp: { name: 'National Runner-Up', blurb: 'One win from immortality. It stings forever.' },
+      semifinalExit: { name: 'CFP Semifinalist', blurb: 'Sixty minutes short of the title game.' },
+      earlyExit: { name: 'Quarterfinal Exit', blurb: 'Earned the bye. Wasted the bye.' },
     },
     missTiers: [
-      { min: 9, name: 'Left Out', blurb: 'Snubbed by the committee.' },
+      { min: 9, name: 'Left Out', blurb: 'Snubbed by the committee. Take it up with the rankings.' },
       { min: 7, name: 'Bowl Season', blurb: 'Playing in December, not January.' },
       { min: 6, name: 'Bowl Eligible', blurb: '6-6 and proud of it.' },
       { min: 3, name: 'Rebuilding', blurb: 'Trust the process.' },
@@ -128,6 +128,19 @@ export default {
       lostFinal: 'Lost the National Championship 😤',
       lostSemifinal: 'Lost in the Semifinal 😩',
       oneAndDone: 'One-and-done in the Playoff 😬',
+    },
+    // Challenge-framed one-liners for the one-click share (Share to X /
+    // Copy challenge). Tokens: {record} {attempt} {tries} {perfects}.
+    // The engine prepends "Daily #N — " on daily runs and appends the URL.
+    challenge: {
+      // 16-0: the flex
+      perfect: '16-0. Perfect. Immortal. 🐐 Took me {attempt} tries. Your turn.',
+      // won the natty but not perfect: the flex with an itch
+      champion: 'Won the natty at {record} on attempt #{attempt}. The perfect 16-0 is still out there. Think you can?',
+      // 1-2 losses, no title: the agony
+      nearMiss: '{record}. ONE run ends it and mine just died. {perfects} perfect seasons in {tries} tries. Can you go 16-0?',
+      // everything else: the dare
+      dare: 'Can you go 16-0? I went {record} ({perfects} perfect seasons in {tries} tries).',
     },
   },
 }

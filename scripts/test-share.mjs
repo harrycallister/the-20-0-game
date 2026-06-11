@@ -2,7 +2,7 @@
 // Run: node scripts/test-share.mjs
 import assert from 'node:assert'
 import { computeScore, WEIGHTS } from '../src/score.js'
-import { buildShareText, puzzleNumber } from '../src/share.js'
+import { buildShareText, buildChallengeText, puzzleNumber } from '../src/share.js'
 
 const mkPlayer = (rating, tier) => ({ rating, tier })
 
@@ -80,6 +80,10 @@ const missed = buildShareText({
 })
 assert.ok(missed.includes('Missed the playoffs 💀'))
 assert.ok(!missed.includes('|'))
+
+// NFL has no challenge copy configured — the engine returns null and the
+// UI hides the challenge buttons.
+assert.equal(buildChallengeText(summary, { played: 5 }), null)
 
 console.log('All share/score checks passed. Max weights total:',
   17 * WEIGHTS.REG_WIN + 3 * WEIGHTS.PLAYOFF_WIN + WEIGHTS.CHAMPION +

@@ -2,7 +2,7 @@
 // Run: VITE_SPORT=cfb node scripts/test-cfb.mjs
 import assert from 'node:assert'
 import { computeScore, WEIGHTS } from '../src/score.js'
-import { buildShareText, puzzleNumber } from '../src/share.js'
+import { buildShareText, buildChallengeText, xIntentUrl, puzzleNumber } from '../src/share.js'
 import { FORMATIONS, simulateSeason, teamMVP, heismanRace, buildSlots, setSeed, clearSeed } from '../src/game.js'
 import SPORT from '../src/sport.js'
 
@@ -75,6 +75,34 @@ assert.ok([...text].length < 280)
   assert.equal(t.player.pos, 'RB', 'Triple Option MVP should be an RB')
   // deterministic: same inputs, same MVP
   assert.equal(teamMVP(rosterFor(airSlots), air, airSlots).player.pos, 'QB')
+}
+
+// Challenge share: outcome-tiered copy, daily tag, attempts folded in,
+// and every variant fits an X post (280 chars; URLs count as 23).
+{
+  const career = { played: 31, perfects: 0 }
+  const base = { daily: SPORT.meta.dailyEpoch, made: true }
+  const cases = [
+    [{ ...base, wins: 16, losses: 0, perfect: true, champion: true }, /Immortal|16-0/, /31/],
+    [{ ...base, wins: 15, losses: 1, perfect: false, champion: true }, /natty/, /attempt #31/],
+    [{ ...base, wins: 15, losses: 1, perfect: false, champion: false }, /15-1/, /0 perfect seasons in 31 tries/],
+    [{ ...base, wins: 6, losses: 7, perfect: false, champion: false }, /Can you go 16-0\? I went 6-7/, /31 tries/],
+  ]
+  for (const [summary, re1, re2] of cases) {
+    const text = buildChallengeText(summary, career, { medium: 'x' })
+    assert.ok(text.startsWith('Daily #1 — '), 'daily tag: ' + text)
+    assert.ok(re1.test(text), `${re1} in: ${text}`)
+    assert.ok(re2.test(text), `${re2} in: ${text}`)
+    assert.ok(text.includes('utm_source=share&utm_medium=x'))
+    // X length: each URL counts as 23 chars regardless of real length
+    const xLen = text.replace(/https?:\/\/\S+/g, 'x'.repeat(23)).length
+    assert.ok(xLen <= 280, `too long for X (${xLen}): ${text}`)
+    assert.ok(xIntentUrl(text).startsWith('https://x.com/intent/post?text='))
+  }
+  // free play is labeled, not numbered
+  const fp = buildChallengeText({ ...cases[3][0], daily: null }, career)
+  assert.ok(!fp.includes('Daily #'))
+  console.log('--- challenge (near miss) ---\n' + buildChallengeText(cases[2][0], career) + '\n----------------------------')
 }
 
 // Heisman race: an elite QB on a championship Air Raid team wins it; the

@@ -1148,6 +1148,19 @@ body {
   border-radius: 4px;
   vertical-align: middle;
 }
+/* attempts counter on the recap — the grind is the content */
+.attempts-line {
+  margin-top: 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6f6a58;
+}
+.challenge-row {
+  margin-top: 0.5rem;
+}
+
 /* Heisman award card: the gold version of the MVP card */
 .heisman-card {
   background: #f7e9c4;

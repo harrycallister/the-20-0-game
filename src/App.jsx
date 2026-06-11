@@ -32,6 +32,9 @@ import {
   SITE_URL,
   puzzleNumber,
   buildShareText,
+  buildChallengeText,
+  xIntentUrl,
+  copyText,
   summaryFromResult,
   summaryFromDaily,
   shareResultText,
@@ -976,6 +979,22 @@ function ShareActions({ summary, tierName, slots, roster }) {
     else if (outcome === 'failed') flash('Could not create image')
   }
 
+  // One-click challenge share (config-gated: sports without challenge copy
+  // don't render the buttons). Career numbers come fresh off the device so
+  // the attempt count includes the run being shared.
+  const hasChallenge = Boolean(SPORT.share.challenge)
+
+  function onShareX() {
+    const text = buildChallengeText(summary, loadStats(), { medium: 'x' })
+    window.open(xIntentUrl(text), '_blank', 'noopener')
+  }
+
+  async function onCopyChallenge() {
+    const text = buildChallengeText(summary, loadStats(), { medium: 'copy' })
+    const outcome = await copyText(text)
+    flash(outcome === 'copied' ? 'Challenge copied ✓' : 'Could not copy')
+  }
+
   return (
     <>
       <div className="share-row">
@@ -988,6 +1007,16 @@ function ShareActions({ summary, tierName, slots, roster }) {
           </button>
         )}
       </div>
+      {hasChallenge && (
+        <div className="share-row challenge-row">
+          <button className="btn ghost share-x" onClick={onShareX}>
+            Share to 𝕏
+          </button>
+          <button className="btn ghost share-copy" onClick={onCopyChallenge}>
+            Copy challenge
+          </button>
+        </div>
+      )}
       {hasRoster && (
         <div className="sharecard-stage" aria-hidden="true">
           <ShareCard
@@ -1146,6 +1175,20 @@ function SimResult({ result, slots, roster, formation, daily }) {
           </div>
         )}
       </div>
+
+      {SPORT.share.challenge &&
+        (() => {
+          const career = loadStats()
+          return (
+            <div className="attempts-line">
+              {daily ? `Daily #${puzzleNumber(daily)} · ` : 'Free Play · '}
+              Attempt #{career.played} overall ·{' '}
+              {career.perfects > 0
+                ? `${career.perfects}× ${SPORT.meta.perfectName} 🐐`
+                : `${SPORT.meta.perfectName} still undone`}
+            </div>
+          )
+        })()}
 
       {result.confChampion != null && (
         <div className="honors">
