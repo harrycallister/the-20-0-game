@@ -12,6 +12,7 @@ import {
   simulateSeason,
   teamMVP,
   mvpBlurb,
+  heismanRace,
   setSeed,
   clearSeed,
   dailySeed,
@@ -284,9 +285,6 @@ export default function App() {
                     {p ? p.name : '—'}
                     {p?.tier === 'legend' && (
                       <span className="legend-badge">Legend</span>
-                    )}
-                    {p?.heisman && (
-                      <span className="legend-badge heisman-badge">Heisman</span>
                     )}
                   </span>
                   <span className="bs-team col-team">
@@ -581,9 +579,6 @@ function DraftRound({ team, reel, slots, roster, pickNo, total, rerollsLeft, exp
                     {o.player.tier === 'legend' && (
                       <span className="legend-badge">Legend</span>
                     )}
-                    {o.player.heisman && (
-                      <span className="legend-badge heisman-badge">Heisman</span>
-                    )}
                     {o.disabled && <span className="taken-badge">Filled</span>}
                   </span>
                   <span className="pos-tags">
@@ -650,9 +645,6 @@ function CaptainSelect({ candidates, expert, onPick }) {
                   {c.player.name}
                   {c.player.tier === 'legend' && (
                     <span className="legend-badge">Legend</span>
-                  )}
-                  {c.player.heisman && (
-                    <span className="legend-badge heisman-badge">Heisman</span>
                   )}
                 </span>
                 <span className="pos-tags">
@@ -1131,6 +1123,9 @@ function DailyLeaderboard({ day, score, wins, losses, rosterAvg, picks }) {
 function SimResult({ result, slots, roster, formation, daily }) {
   const summary = summaryFromResult(result, daily)
   const mvp = SPORT.features?.mvp ? teamMVP(roster, formation, slots) : null
+  const heisman = SPORT.features?.heisman
+    ? heismanRace(roster, formation, slots, result)
+    : null
   return (
     <div className={`result ${result.tier.perfect ? 'perfect' : ''}`}>
       <div className="result-top">
@@ -1152,27 +1147,46 @@ function SimResult({ result, slots, roster, formation, daily }) {
         )}
       </div>
 
-      {(() => {
-        const heismen = Object.values(roster)
-          .filter((p) => p && p.heisman)
-          .map((p) => p.name)
-        // confChampion is null for sports without a CCG (NFL) — only then
-        // does a loss row get skipped entirely
-        if (result.confChampion == null && heismen.length === 0) return null
-        return (
-          <div className="honors">
-            {result.confChampion && (
-              <span className="honor">🏆 Conference Champion</span>
-            )}
-            {result.confChampion === false && (
-              <span className="honor lost">Lost the Conference Championship</span>
-            )}
-            {heismen.length > 0 && (
-              <span className="honor">🏅 Heisman on roster: {heismen.join(', ')}</span>
-            )}
+      {result.confChampion != null && (
+        <div className="honors">
+          {result.confChampion ? (
+            <span className="honor">🏆 Conference Champion</span>
+          ) : (
+            <span className="honor lost">Lost the Conference Championship</span>
+          )}
+        </div>
+      )}
+
+      {heisman?.won && (
+        <div className="mvp-card heisman-card">
+          <div className="mvp-kicker heisman-kicker">🏆 Heisman Trophy Winner</div>
+          <div className="mvp-main">
+            <span className={`mvp-ovr ${ratingClass(heisman.player.rating)}`}>
+              {heisman.player.rating}
+            </span>
+            <span className="mvp-who">
+              <b>
+                {heisman.player.name}
+                {heisman.player.tier === 'legend' && (
+                  <span className="legend-badge">Legend</span>
+                )}
+              </b>
+              <em>
+                {heisman.slot.label} ·{' '}
+                {heisman.player.dpos ? `${heisman.player.dpos} · ` : ''}
+                {heisman.player.team} {heisman.player.year}
+              </em>
+            </span>
           </div>
-        )
-      })()}
+          <div className="mvp-blurb">
+            {result.tier.perfect
+              ? 'A perfect season and the stiff-arm pose. Immortal twice over.'
+              : result.champion
+                ? 'Took home the trophy AND the title.'
+                : 'Your season put him on the podium in New York.'}
+          </div>
+        </div>
+      )}
 
       {mvp && (
         <div className="mvp-card">
@@ -1186,9 +1200,6 @@ function SimResult({ result, slots, roster, formation, daily }) {
                 {mvp.player.name}
                 {mvp.player.tier === 'legend' && (
                   <span className="legend-badge">Legend</span>
-                )}
-                {mvp.player.heisman && (
-                  <span className="legend-badge heisman-badge">Heisman</span>
                 )}
               </b>
               <em>

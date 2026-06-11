@@ -1148,9 +1148,13 @@ body {
   border-radius: 4px;
   vertical-align: middle;
 }
-.heisman-badge {
-  background: #c1432e;
-  color: #faf5e6;
+/* Heisman award card: the gold version of the MVP card */
+.heisman-card {
+  background: #f7e9c4;
+  border-width: 3px;
+}
+.heisman-kicker {
+  color: #8a6d1a;
 }
 /* recap honors row: conference title + Heisman callouts */
 .honors {

@@ -21,7 +21,7 @@ export default {
   },
 
   // Recap extras the NFL game doesn't (yet) show.
-  features: { mvp: true },
+  features: { mvp: true, heisman: true },
 
   // College playbooks. Same engine rule as the NFL game: QB + 5 skill + OL +
   // CAPT + DEF = 9 picks; the playbook decides the RB/WR/TE split.

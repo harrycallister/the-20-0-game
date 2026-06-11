@@ -193,33 +193,69 @@ function playGame(avg, oppBase, spread, captainRole) {
 // SPORT.features.mvp). PURE + deterministic — no rng — so the daily shows
 // the same MVP to everyone: overall rating + how featured the position is
 // in the chosen playbook + the captain's matchup expected value.
+function captainEV(role) {
+  const b = CAPTAIN_BONUS[role]
+  if (!b) return 0
+  return SEASON.passHeavyRate * b.pass + (1 - SEASON.passHeavyRate) * b.run
+}
+
+// How featured a position is in the chosen playbook.
+function schemeBonus(p, skill) {
+  switch (p.pos) {
+    case 'QB': return 1.5 * (skill.WR - skill.RB) // air raid +4.5, wishbone -3
+    case 'WR': return 1.0 * (skill.WR - 1)
+    case 'RB': return 1.6 * (skill.RB - 1)
+    case 'TE': return 1.4 * (skill.TE - 1)
+    case 'OL': return 0.6 * skill.RB - 2 // run-heavy schemes showcase the line
+    case 'DC': return 1.6 * captainEV(p.role) - 1
+    case 'DEF': return -1.5 // units only win when clearly the class of the team
+    default: return 0
+  }
+}
+
 export function teamMVP(roster, formation, slots) {
   const skill = formation?.skill || { RB: 1, WR: 2, TE: 1 }
-  const evOf = (role) => {
-    const b = CAPTAIN_BONUS[role]
-    if (!b) return 0
-    return SEASON.passHeavyRate * b.pass + (1 - SEASON.passHeavyRate) * b.run
-  }
-  const bonus = (p) => {
-    switch (p.pos) {
-      case 'QB': return 1.5 * (skill.WR - skill.RB) // air raid +4.5, wishbone -3
-      case 'WR': return 1.0 * (skill.WR - 1)
-      case 'RB': return 1.6 * (skill.RB - 1)
-      case 'TE': return 1.4 * (skill.TE - 1)
-      case 'OL': return 0.6 * skill.RB - 2 // run-heavy schemes showcase the line
-      case 'DC': return 1.6 * evOf(p.role) - 1
-      case 'DEF': return -1.5 // units only win when clearly the class of the team
-      default: return 0
-    }
-  }
   let best = null
   for (const s of slots) {
     const p = roster[s.key]
     if (!p) continue
-    const score = p.rating + bonus(p)
+    const score = p.rating + schemeBonus(p, skill)
     if (!best || score > best.score) best = { player: p, slot: s, score }
   }
   return best
+}
+
+// ---- Heisman race --------------------------------------------------------
+// An in-game award your star can WIN (config-gated via
+// SPORT.features.heisman) — not a history badge. Voters want a great player
+// having a great season on a winning team: rating + how featured he is in
+// your scheme + team success (wins, conference title, the natty). Players
+// whose real season actually won the Heisman get a quiet voters' boost.
+// PURE + deterministic — the daily crowns the same winner for everyone.
+// Skill players only (plus the captain at a steep discount — a primetime
+// two-way star can pull a Woodson); units don't get invited to New York.
+const HEISMAN_THRESHOLD = 110
+
+export function heismanRace(roster, formation, slots, result) {
+  const skill = formation?.skill || { RB: 1, WR: 2, TE: 1 }
+  // The season is most of the argument: a monster regular season + the
+  // conference title puts an elite star over the line, and winning the
+  // natty makes your featured star the default pick regardless of pedigree.
+  const team =
+    0.7 * result.regWins +
+    (result.confChampion ? 2 : 0) +
+    (result.champion ? 10 : 0)
+  let best = null
+  for (const s of slots) {
+    const p = roster[s.key]
+    if (!p || p.pos === 'OL' || p.pos === 'DEF') continue
+    let score = p.rating + schemeBonus(p, skill) + team
+    if (p.pos === 'DC') score -= 5 // defenders almost never win it
+    if (p.heisman) score += 3 // the real-life winner has the voters' ear
+    if (!best || score > best.score) best = { player: p, slot: s, score }
+  }
+  if (!best) return null
+  return { ...best, won: best.score >= HEISMAN_THRESHOLD }
 }
 
 // One-line recap blurb for the MVP, flavored by playbook + position.

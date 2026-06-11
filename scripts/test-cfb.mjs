@@ -3,7 +3,7 @@
 import assert from 'node:assert'
 import { computeScore, WEIGHTS } from '../src/score.js'
 import { buildShareText, puzzleNumber } from '../src/share.js'
-import { FORMATIONS, simulateSeason, teamMVP, buildSlots, setSeed, clearSeed } from '../src/game.js'
+import { FORMATIONS, simulateSeason, teamMVP, heismanRace, buildSlots, setSeed, clearSeed } from '../src/game.js'
 import SPORT from '../src/sport.js'
 
 assert.equal(SPORT.key, 'cfb', 'run with VITE_SPORT=cfb')
@@ -75,6 +75,26 @@ assert.ok([...text].length < 280)
   assert.equal(t.player.pos, 'RB', 'Triple Option MVP should be an RB')
   // deterministic: same inputs, same MVP
   assert.equal(teamMVP(rosterFor(airSlots), air, airSlots).player.pos, 'QB')
+}
+
+// Heisman race: an elite QB on a championship Air Raid team wins it; the
+// same QB on a losing team does not; deterministic; units never eligible.
+{
+  const air = FORMATIONS.find((f) => f.key === 'air-raid')
+  const slots = buildSlots(air)
+  const mk = (pos, rating) => ({ pos, rating, name: pos, team: 'T', year: 2020 })
+  const roster = Object.fromEntries(slots.map((s) => [s.key, mk(s.pos, 85)]))
+  roster.QB = mk('QB', 96)
+  const greatSeason = { regWins: 12, confChampion: true, champion: true }
+  const badSeason = { regWins: 4, confChampion: false, champion: false }
+  const winner = heismanRace(roster, air, slots, greatSeason)
+  assert.equal(winner.player.pos, 'QB')
+  assert.ok(winner.won, 'elite QB + championship season should win the Heisman')
+  assert.ok(!heismanRace(roster, air, slots, badSeason).won, 'losing season should not')
+  assert.equal(heismanRace(roster, air, slots, greatSeason).won, winner.won, 'deterministic')
+  // real-life Heisman season nudges a tight race
+  const r2 = { ...roster, QB: { ...mk('QB', 96), heisman: true } }
+  assert.ok(heismanRace(r2, air, slots, greatSeason).score > winner.score)
 }
 
 // Sim balance: perfect-season and title rates by roster strength over 20k
