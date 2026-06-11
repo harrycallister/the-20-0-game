@@ -89,6 +89,8 @@ Everything except the leaderboard is static; there is no game server. Any device
 
 ## The 16-0 Game (College Football edition)
 
+> Full CFB documentation — every feature, the data pipeline, and its quirks — lives in **[README-CFB.md](README-CFB.md)**. The short version:
+
 The same engine ships a CFB edition at **go16-0game.com**: 12 regular-season
 games + the conference championship + the 12-team Playoff (bye →
 quarterfinal → semifinal → national championship) = a perfect **16-0**.
